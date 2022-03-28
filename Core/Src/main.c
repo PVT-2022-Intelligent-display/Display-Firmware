@@ -24,6 +24,8 @@
 /* USER CODE BEGIN Includes */
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_gpio.h>
+#include <stdio.h>
+#include "uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,7 +63,8 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint8_t huart1RxBuffer[1];
+
+uint8_t huart1RxBuffer[UART1_RX_BUFF_SIZE];
 
 /* USER CODE END 0 */
 
@@ -95,11 +98,10 @@ int main(void)
   MX_GPIO_Init();
   MX_FSMC_Init();
   MX_USART1_UART_Init();
-
   /* USER CODE BEGIN 2 */
 
-  //enable uart interrupt
-  HAL_UART_Receive_IT(&huart1, (uint8_t *)huart1RxBuffer, 1);
+  //enable uart rx by interrupt
+  HAL_UART_Receive_IT(&huart1, (uint8_t *)huart1RxBuffer, UART1_RX_BUFF_SIZE);
 
   static int blOn = 0;
   /* USER CODE END 2 */
@@ -108,10 +110,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	HAL_Delay(1000);
+
+	HAL_Delay(500);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
-	HAL_Delay(1000);
+	printf("LED off\n\r");
+	HAL_Delay(500);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
+	printf("LED on\n\r");
 
 
 	blOn = !blOn;
@@ -138,14 +143,10 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 25;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -154,12 +155,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
     Error_Handler();
   }
@@ -193,7 +194,8 @@ static void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
-
+  huart1.RxXferSize = UART1_RX_BUFF_SIZE;
+  huart1.pRxBuffPtr = huart1RxBuffer;
   /* USER CODE END USART1_Init 2 */
 
 }
