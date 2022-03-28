@@ -113,6 +113,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+
   initUartDemo();
 
   uartDemoBlocking();

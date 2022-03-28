@@ -18,7 +18,7 @@ uint8_t flagD; //read done
 uint8_t flagR; //read requested
 uint8_t flagT; //transmit done
 
-#define CHARCOUNT 10
+#define CHARCOUNT 1
 #define DEBUG_UART huart1
 
 int assembleReply();
@@ -34,12 +34,12 @@ void initUartDemo(){
 void uartDemoBlocking(){
 
 	printf("Uart demo blocking entering.");
-	int retVal = uartReceiveBuffer(DEBUG_UART, inBuffer, CHARCOUNT, &flagD);
+	uartReceiveBuffer(DEBUG_UART, inBuffer, CHARCOUNT, &flagD);
 	while(flagD == 0){
 
 	}
 	int i = assembleReply();
-	retVal = uartTransmitBuffer(DEBUG_UART, outBuffer, i, &flagT);
+	uartTransmitBuffer(DEBUG_UART, outBuffer, i, &flagT);
 	while(flagT == 0){
 
 	}

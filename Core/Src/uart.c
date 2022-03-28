@@ -44,7 +44,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	}
 }
 
-//This function is claled after each completed transmission
+//This function is called after each completed transmission
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 		uint8_t *flagToRaise = NULL;
 		if(huart->Instance == USART1){
@@ -68,6 +68,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
  * doneFlag is set to 0 when called and changes to 1 once transmission is complete.
  * Returns: 0 when ok, nonzero otherwise.
  */
+//WIP! Does not yet work!
 int uartTransmitBuffer(UART_HandleTypeDef huart, uint8_t *buffer, uint16_t size, uint8_t *doneFlag){
 	if(huart.Instance == USART1){
 		pHuart1TxDoneFlag = doneFlag;
@@ -90,6 +91,7 @@ int uartTransmitBuffer(UART_HandleTypeDef huart, uint8_t *buffer, uint16_t size,
  * doneFlag is set to 0 when called and changes to 1 once reception is complete.
  * Returns: 0 when ok, nonzero otherwise.
  */
+//WIP! Does not yet work!
 int uartReceiveBuffer(UART_HandleTypeDef huart, uint8_t *buffer, uint16_t size, uint8_t *doneFlag){
 	if(huart.Instance == USART1){
 			pHuart1RxDoneFlag = doneFlag;
