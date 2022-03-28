@@ -10,13 +10,15 @@
 
 #include <stm32f4xx_hal.h>
 
-#define UART1_RX_BUFF_SIZE 1 //how many bytes will be received before firing HAL_UART_TxCpltCallback
-
-extern UART_HandleTypeDef huart1; //debug TX RX pins
-extern uint8_t huart1RxBuffer[UART1_RX_BUFF_SIZE];
+extern UART_HandleTypeDef huart1; //usb connector / debug pins uart
+extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart4;
 
 int __io_putchar(int ch);
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
+
+int uartTransmitBuffer(UART_HandleTypeDef huart, uint8_t *buffer, uint16_t size, uint8_t *doneFlag);
+int uartReceiveBuffer(UART_HandleTypeDef huart, uint8_t *buffer, uint16_t size, uint8_t *doneFlag);
 
 
 #endif /* __UART_H__ */
