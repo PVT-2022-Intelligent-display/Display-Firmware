@@ -61,8 +61,8 @@ all: main-build
 main-build: display_new.elf secondary-outputs
 
 # Tool invocations
-display_new.elf: $(OBJS) $(USER_OBJS) C:\Users\Petr\STM32CubeIDE\workspace_1.6.1\display_new\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "display_new.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Petr\STM32CubeIDE\workspace_1.6.1\display_new\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="display_new.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+display_new.elf: $(OBJS) $(USER_OBJS) C:\fel\pvt\Display-Firmware\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "display_new.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\fel\pvt\Display-Firmware\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="display_new.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
