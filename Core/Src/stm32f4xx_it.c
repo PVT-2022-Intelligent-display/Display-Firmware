@@ -23,6 +23,9 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "uart.h"
+#include <stm32f4xx_hal.h>
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,7 +59,8 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -198,6 +202,67 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
+
+/**
+  * @brief This function handles USART1 global interrupt.
+  */
+void USART1_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART1_IRQn 0 */
+  static int ledVal = 0;
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, ledVal);
+  ledVal = !ledVal;
+  /* USER CODE END USART1_IRQn 0 */
+  HAL_UART_IRQHandler(&huart1);
+  /* USER CODE BEGIN USART1_IRQn 1 */
+  volatile unsigned int IIR;
+  IIR = USART1->SR;
+  if(IIR & UART_FLAG_RXNE){
+  		//Read Data Register Not Empty
+  		char t = USART1->DR; // the character from the USART1 data register is saved in t
+  		printf("got %c\n\r", t);
+  		put_in_rx_buffer(t,DBG_UART);
+      }
+  if(IIR & UART_FLAG_TXE){
+  		if(wr_pointer_dbg==rd_pointer_dbg){
+  			__HAL_UART_DISABLE_IT(&huart1, UART_IT_TXE);
+  		}
+  		else{
+  			DBG_UART->DR = get_from_tx_buffer(DBG_UART);
+  		}
+  	}
+
+
+  /* USER CODE END USART1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART2 global interrupt.
+  */
+void USART2_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART2_IRQn 0 */
+
+  /* USER CODE END USART2_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
+  /* USER CODE BEGIN USART2_IRQn 1 */
+  volatile unsigned int IIR;
+  	IIR=USART2->SR;
+    if(IIR & UART_FLAG_RXNE){
+  		// check if the USART6 receive interrupt flag was set
+  		char t = USART2->DR; // the character from the USART1 data register is saved in t
+  		put_in_rx_buffer(t,RS485_UART);
+      }
+  	if(IIR & UART_FLAG_TXE){
+  		if(wr_pointer_rs485==rd_pointer_rs485){
+  			__HAL_UART_DISABLE_IT(&huart2, UART_IT_TXE);
+  		}
+  		else{
+  			USART2->DR = get_from_tx_buffer(RS485_UART);
+  		}
+  	}
+  /* USER CODE END USART2_IRQn 1 */
+}
 
 /* USER CODE BEGIN 1 */
 

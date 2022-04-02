@@ -27,7 +27,6 @@
 #include <stdio.h>
 #include "uart.h"
 
-#include "demoUart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -105,21 +104,15 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
-
-  initUartDemo();
-
-  //uartDemoBlocking();
+  printf("Entering main loop\n\r");
 
   while (1)
   {
 
 	HAL_Delay(2000);
 
-	printf("Main loop\n\r");
+	//printf("Main loop\n\r");
 
-
-	//uartDemoLoop();
 
     /* USER CODE END WHILE */
 
@@ -195,6 +188,7 @@ static void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
+  __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE); //doing this seems to turn on interrupt forever
   /* USER CODE END USART1_Init 2 */
 
 }
