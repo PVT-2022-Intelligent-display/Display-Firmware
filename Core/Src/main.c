@@ -194,7 +194,9 @@ static void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
-  __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE); //doing this seems to turn on interrupt forever
+  __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE); //turn on rx interrupt forever
+  //tx interrupt is enabled in send_usart_message() insead.
+  //__HAL_UART_ENABLE_IT(&huart1, UART_IT_TXE); //turn on tx interrupt forever
   /* USER CODE END USART1_Init 2 */
 
 }
@@ -227,7 +229,9 @@ static void MX_USART2_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART2_Init 2 */
-
+  __HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE); //turn on rx interrupt forever
+  //tx interrupt is enabled in send_usart_message() insead.
+  //__HAL_UART_ENABLE_IT(&huart2, UART_IT_TXE); //turn on tx interrupt forever
   /* USER CODE END USART2_Init 2 */
 
 }

@@ -192,6 +192,10 @@ char usart_message_ready(USART_TypeDef* USARTx, char delimiter)
 	return 0;
 }
 //**************************************************************************************
+/*
+ * Reads message from specified uart rx buffer into @dst until @delimiter character is encountered or @max_len exceeded.
+ * Returns: number of characters read if successful, zero when there is no message ready to be read.
+ */
 unsigned int read_usart_message(char* dst, USART_TypeDef* USARTx, int max_len, char delimiter)
 {
 	if (usart_message_ready(USARTx,delimiter))
@@ -208,12 +212,22 @@ unsigned int read_usart_message(char* dst, USART_TypeDef* USARTx, int max_len, c
 	return 0;
 }
 
+/*
+ *
+ *
+ */
+
+unsigned int send_usart_message(char* src, USART_TypeDef* USARTx, int size){
+	return 0;
+}
 
 
 
 
 
 
+
+/*
 //This function is called after each completed reception.
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	uint8_t *flagToRaise = NULL;
@@ -223,6 +237,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 		uint8_t *flagToRaise = NULL;
 }
+*/
 
 
 
