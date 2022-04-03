@@ -27,6 +27,8 @@
 #include <stdio.h>
 #include "uart.h"
 
+#include "uartDemo.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -108,9 +110,13 @@ int main(void)
 
   while (1)
   {
+	int secSleep = 1;
+	int msecSleep = 500;
+	int sT =
+	printf("Sleeping %d.%d secs\r\n", secSleep, msecSleep);
+	HAL_Delay(1000*secSleep + msecSleep);
 
-	HAL_Delay(2000);
-
+	uartDemoLoop();
 	//printf("Main loop\n\r");
 
 

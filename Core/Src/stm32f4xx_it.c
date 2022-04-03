@@ -220,7 +220,7 @@ void USART1_IRQHandler(void)
   if(IIR & UART_FLAG_RXNE){
   		//Read Data Register Not Empty
   		char t = USART1->DR; // the character from the USART1 data register is saved in t
-  		printf("got %c\n\r", t);
+  		//printf("got %c ... (%d)\n\r", t, t);
   		put_in_rx_buffer(t,DBG_UART);
       }
   if(IIR & UART_FLAG_TXE){

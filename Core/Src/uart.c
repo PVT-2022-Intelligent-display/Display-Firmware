@@ -137,6 +137,77 @@ char get_from_rx_buffer(USART_TypeDef* USARTx)
 	return data;
 }
 
+unsigned long get_tx_bytes(USART_TypeDef* USARTx)
+{
+	if(USARTx == RS485_UART)
+	{
+		return SIO_TBUFLEN_RS485;
+	}
+	else if(USARTx == DBG_UART)
+	{
+		return SIO_TBUFLEN_DBG;
+	}
+	return 0;
+}
+//**************************************************************************************
+unsigned long get_rx_bytes(USART_TypeDef* USARTx)
+{
+	if(USARTx == DBG_UART)
+	{
+		return SIO_RBUFLEN_DBG;
+	}
+
+	else if(USARTx == RS485_UART)
+	{
+		return SIO_RBUFLEN_RS485;
+	}
+
+	return 0;
+}
+//**************************************************************************************
+char usart_message_ready(USART_TypeDef* USARTx, char delimiter)
+{
+	if (USARTx == DBG_UART)
+	{
+		unsigned long tail = rd_pointer_rx_dbg;
+
+		while ((wr_pointer_rx_dbg - tail) != 0)
+		{
+			if (rx_buffer_dbg[tail & (LEN_RX_BUFFER_DBG - 1)] == delimiter)
+				return 1;
+			++tail;
+		}
+	}
+	else if (USARTx == RS485_UART)
+	{
+		unsigned long tail = rd_pointer_rx_rs485;
+
+		while ((wr_pointer_rx_rs485 - tail) != 0)
+		{
+			if (rx_buffer_rs485[tail & (LEN_RX_BUFFER_RS485 - 1)] == delimiter)
+				return 1;
+			++tail;
+		}
+	}
+	return 0;
+}
+//**************************************************************************************
+unsigned int read_usart_message(char* dst, USART_TypeDef* USARTx, int max_len, char delimiter)
+{
+	if (usart_message_ready(USARTx,delimiter))
+	{
+		int nr = 0;
+		do
+		{
+			*dst = get_from_rx_buffer(USARTx);
+			++nr;
+		} while (*dst++ != delimiter && nr < max_len);
+
+		return nr;
+	}
+	return 0;
+}
+
 
 
 

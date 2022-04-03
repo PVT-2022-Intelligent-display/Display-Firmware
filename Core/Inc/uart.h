@@ -59,4 +59,8 @@ char get_from_tx_buffer(USART_TypeDef* USARTx);
 void put_in_rx_buffer(char data, USART_TypeDef* USARTx);
 char get_from_rx_buffer(USART_TypeDef* USARTx);
 
+char usart_message_ready(USART_TypeDef* USARTx, char delimiter);
+unsigned int read_usart_message(char* dst, USART_TypeDef* USARTx, int max_len, char delimiter);
+
+
 #endif /* __UART_H__ */
