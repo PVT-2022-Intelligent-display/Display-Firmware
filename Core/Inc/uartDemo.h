@@ -2,7 +2,7 @@
  * uartDemo.h
  *
  *  Created on: Apr 3, 2022
- *      Author: Nouth
+ *      Author: Petr
  */
 
 #ifndef INC_UARTDEMO_H_

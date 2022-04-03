@@ -107,17 +107,16 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   printf("Entering main loop\n\r");
+  int loopNumber = 0;
 
   while (1)
   {
 	int secSleep = 1;
 	int msecSleep = 500;
-	int sT =
-	printf("Sleeping %d.%d secs\r\n", secSleep, msecSleep);
+	printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
 	HAL_Delay(1000*secSleep + msecSleep);
 
 	uartDemoLoop();
-	//printf("Main loop\n\r");
 
 
     /* USER CODE END WHILE */

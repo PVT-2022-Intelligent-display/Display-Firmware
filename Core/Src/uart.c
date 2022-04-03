@@ -196,8 +196,9 @@ char usart_message_ready(USART_TypeDef* USARTx, char delimiter)
  * Reads message from specified uart rx buffer into @dst until @delimiter character is encountered or @max_len exceeded.
  * Returns: number of characters read if successful, zero when there is no message ready to be read.
  */
-unsigned int read_usart_message(char* dst, USART_TypeDef* USARTx, int max_len, char delimiter)
+unsigned int read_usart_message(char* dst, UART_HandleTypeDef* huart, int max_len, char delimiter)
 {
+	USART_TypeDef* USARTx = huart->Instance;
 	if (usart_message_ready(USARTx,delimiter))
 	{
 		int nr = 0;
@@ -213,12 +214,35 @@ unsigned int read_usart_message(char* dst, USART_TypeDef* USARTx, int max_len, c
 }
 
 /*
- *
- *
+ * Sends @size bytes from @src via specified uart. Nonblocking.
+ * Returns: 0 when operation fails due to another message being transmitted, number of bytes written to uart buffer otherwise.
  */
 
-unsigned int send_usart_message(char* src, USART_TypeDef* USARTx, int size){
-	return 0;
+unsigned int send_usart_message(char* src, UART_HandleTypeDef* huart, int size){
+	USART_TypeDef* USARTx = huart->Instance;
+	if (USARTx == DBG_UART){
+		if(wr_pointer_dbg!=rd_pointer_dbg){
+			return 0;//another message is in progress.
+		}
+
+	}
+	else if (USARTx == RS485_UART){
+		if(wr_pointer_rs485!=rd_pointer_rs485){
+			return 0;//another message is in progress.
+		}
+	}
+
+	int nr = 0;
+	do{
+		put_in_tx_buffer(*(src + nr), USARTx);
+		nr++;
+	} while (nr < size);
+
+	if(nr>0){
+		USARTx->DR = get_from_tx_buffer(USARTx);
+		__HAL_UART_ENABLE_IT(huart, UART_IT_TXE); //turn on tx interrupt forever (until turned off in IRQ handler)
+	}
+	return nr;
 }
 
 
