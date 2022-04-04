@@ -7,451 +7,229 @@
 #include <stm32f4xx.h>
 #include <stm32f4xx_hal_spi.h>
 #include <LCD_driver.h>
+#include <stm32f4xx_hal.h>
+#include <stm32f4xx_hal_gpio.h>
+//#include "iopins.h"
+//#include "usart_routines.h"
+//#include "stdio.h"
+//#include "ext_flash.h"
+//#include "spi_routines.h"
+//#include "rtc_routines.h"
+//#include "i2c_routines.h"
+//#include "ILI9488/fsmc_ili9488.h"
+//#include "ILI9488/config.h"
+//#include "lcd/lcd_touch.h"
 
-static void LCD_pins_init(void) {
+void interrupt_initialize_priorities();
+void iopins_ini();
 
+void Init_LCD()
+{
+	interrupt_initialize_priorities();		// initialize IRQ
+	//*****************************************************************************
+		iopins_ini();							// initialize IO pins
+		spi3_ini();								// initialize SPI LCD interface
+		i2c_ini();								// initialize I2C
+
+		TFT_CtrlLinesConfig();					// initialize TFT
+		TFT_FSMCConfig_write();					// initialize TFT
+
+		ini_lcd_pwm();							// initalize TFT backlight
+		pwm_backlight_set(70);					// backlight full
+		touch_reset();							// reset TP controller
+		touch_ini();							// initialize TP IRQ
+		touch_write_register(0x0E,0xC000);
+		touch_write_control(0x80);
+
+	//*****************************************************************************
+		initialize_ili9488();					// initialize LCD
+		dmaInit();								// initialize DMA
+}
+
+void interrupt_initialize_priorities()
+{
+	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4); //4 bits for preemp priority 0 bit for sub priority
+}
+
+void iopins_ini()
+{
 	GPIO_InitTypeDef GPIO_InitStruct;
-    RCC_AHB1PeriphClockCmd(LCD_CS_PORT_RCC, ENABLE);
+
+    BUZZER_PORT_RCC();
+	GPIO_InitStruct.Pin = BUZZER;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(BUZZER_PORT, &GPIO_InitStruct);
+
+    RS485DIR_PORT_RCC();
+	GPIO_InitStruct.Pin = RS485DIR;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(RS485DIR_PORT, &GPIO_InitStruct);
+
+//  (LCD_BACKLIGHT_PORT_RCC();
+//	GPIO_InitStruct.Pin = LCD_BACKLIGHT;
+//	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+//	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+//	 HAL_GPIO_Init(LCD_BACKLIGHT_PORT, &GPIO_InitStruct);
+//	HAL_GPIO_WritePin(LCD_BACKLIGHT_PORT,LCD_BACKLIGHT);
+
+    LCD_CS_PORT_RCC();
 	GPIO_InitStruct.Pin = LCD_CS;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH ;
-	HAL_GPIO_Init(LCD_CS_PORT, &GPIO_InitStruct);
-	HAL_GPIO_WritePin(LCD_CS_PORT_RCC,LCD_CS_PORT | LCD_CS, GPIO_PIN_SET);
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	 HAL_GPIO_Init(LCD_CS_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(LCD_CS_PORT,LCD_CS,GPIO_PIN_SET);
 
-    RCC_AHB1PeriphClockCmd(LCD_RES_PORT_RCC, ENABLE);
+    LCD_RES_PORT_RCC();
 	GPIO_InitStruct.Pin = LCD_RES;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-	HAL_GPIO_Init(LCD_RES_PORT, &GPIO_InitStruct);
+	GPIO_InitStruct.Speed =GPIO_SPEED_FREQ_VERY_HIGH;
+	 HAL_GPIO_Init(LCD_RES_PORT, &GPIO_InitStruct);
 
-	GPIO_ResetBits(LCD_RES_PORT,LCD_RES);
+	HAL_GPIO_WritePin(LCD_RES_PORT,LCD_RES,GPIO_PIN_RESET);
 	delay_ms(50);
-	GPIO_SetBits(LCD_RES_PORT,LCD_RES);
+	HAL_GPIO_WritePin(LCD_RES_PORT,LCD_RES,GPIO_PIN_SET);
 
-    RCC_AHB1PeriphClockCmd(LCD_DCX_PORT_RCC, ENABLE);
+    LCD_DCX_PORT_RCC();
 	GPIO_InitStruct.Pin = LCD_DCX;
-	GPIO_InitStruct.Mode = GPIO_Mode_OUT;
-	GPIO_InitStruct.Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructOType = GPIO_OType_PP;
-	GPIO_Init(LCD_DCX_PORT, &GPIO_InitStruct);
-	GPIO_SetBits(LCD_DCX_PORT,LCD_DCX);
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed =GPIO_SPEED_FREQ_VERY_HIGH;
+	 HAL_GPIO_Init(LCD_DCX_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(LCD_DCX_PORT,LCD_DCX,GPIO_PIN_SET);
 
-	//TFT CONTROLL LINES CONFIGURATIONS
-	GPIO_InitTypeDef GPIO_InitStructure;
+    FLASH_CS_PORT_RCC();
+	GPIO_InitStruct.Pin = FLASH_CS;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed =GPIO_SPEED_FREQ_VERY_HIGH;
+	 HAL_GPIO_Init(FLASH_CS_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(FLASH_CS_PORT,FLASH_CS,GPIO_PIN_SET);
 
-	/* Enable GPIOD, GPIOE, GPIOF, GPIOG and AFIO clocks */
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOG | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOF, ENABLE);
+    FLASH_WP_PORT_RCC();
+	GPIO_InitStruct.Pin = FLASH_WP;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(FLASH_WP_PORT, &GPIO_InitStruct);
+	 HAL_GPIO_WritePin(FLASH_WP_PORT,FLASH_WP,GPIO_PIN_RESET);
 
-	/*-- GPIO Configuration ------------------------------------------------------*/
-	/* SRAM Data lines,  NOE (/RD) and NWE (/WR) configuration */
-	GPIO_InitStructure.Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_14 | GPIO_Pin_15 | GPIO_Pin_4 | GPIO_Pin_5;
-	GPIO_InitStructure.Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.Speed = GPIO_Speed_100MHz;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+    FRAM_CS_PORT_RCC();
+	GPIO_InitStruct.Pin = FRAM_CS;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed =GPIO_SPEED_FREQ_VERY_HIGH;
+	 HAL_GPIO_Init(FRAM_CS_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(FRAM_CS_PORT,FRAM_CS,GPIO_PIN_SET);
 
-	GPIO_Init(GPIOD, &GPIO_InitStructure);
-	GPIO_PinAFConfig(GPIOD, GPIO_PinSource0, GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOD, GPIO_PinSource1, GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOD, GPIO_PinSource4, GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOD, GPIO_PinSource5, GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOD, GPIO_PinSource8, GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOD, GPIO_PinSource9, GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOD, GPIO_PinSource10, GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOD, GPIO_PinSource14, GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOD, GPIO_PinSource15, GPIO_AF_FSMC);
+    FRAM_HOLD_PORT_RCC();
+	GPIO_InitStruct.Pin = FRAM_HOLD;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed =GPIO_SPEED_FREQ_VERY_HIGH;
+	 HAL_GPIO_Init(FRAM_HOLD_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(FRAM_HOLD_PORT,FRAM_HOLD,GPIO_PIN_SET);
 
-	GPIO_InitStructure.Pin = GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_11 | GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
-	GPIO_Init(GPIOE, &GPIO_InitStructure);
-
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource7 , GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource8 , GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource9 , GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource10 , GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource11 , GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource12 , GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource13 , GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource14 , GPIO_AF_FSMC);
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource15 , GPIO_AF_FSMC);
-
-//	/* SRAM Address lines configuration (/RS)*/
-//	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
-//	GPIO_Init(GPIOD, &GPIO_InitStructure);
-//	GPIO_PinAFConfig(GPIOD, GPIO_PinSource11, GPIO_AF_FSMC);
-//
-//	/* NE3 configuration (/CS)*/
-//	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
-//
-//	GPIO_Init(GPIOD, &GPIO_InitStructure);
-//	GPIO_PinAFConfig(GPIOD, GPIO_PinSource7, GPIO_AF_FSMC);
-
-	/*/RESET */
-	GPIO_InitStructure.GPIO_Pin=GPIO_Pin_12;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
-	GPIO_Init(GPIOD, &GPIO_InitStructure);
-	GPIO_SetBits(GPIOD, GPIO_Pin_12);
-
-	// INIT LCD BACKLIGHT PWM
-	GPIO_InitTypeDef GPIO_InitStruct;
-
-	/* Clock for GPIOA */
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-	/* Alternating functions for pins */
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_TIM1);
-
-	/* Set pins */
-	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_11;
-	GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStruct);
+    FRAM_WP_PORT_RCC();
+	GPIO_InitStruct.Pin = FRAM_WP;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(FRAM_WP_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(FRAM_WP_PORT,FRAM_WP,GPIO_PIN_SET);
 
 
-	TIM_TimeBaseInitTypeDef TIM_BaseStruct;
+    LED_DBG_PORT_RCC();
+	GPIO_InitStruct.Pin = LED_DBG_1;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(LED_DBG_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(LED_DBG_PORT,LED_DBG_1,GPIO_PIN_SET);
 
-	/* Enable clock for TIM4 */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
-/*
-	TIM4 is connected to APB1 bus, which has on F407 device 42MHz clock
-	But, timer has internal PLL, which double this frequency for timer, up to 84MHz
-	Remember: Not each timer is connected to APB1, there are also timers connected
-	on APB2, which works at 84MHz by default, and internal PLL increase
-	this to up to 168MHz
 
-	Set timer prescaller
-	Timer count frequency is set with
+    BUTTON_0_PORT_RCC();
+	GPIO_InitStruct.Pin = BUTTON_0;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull= GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(BUTTON_0_PORT, &GPIO_InitStruct);
 
-	timer_tick_frequency = Timer_default_frequency / (prescaller_set + 1)
+    BUTTON_1_PORT_RCC();
+	GPIO_InitStruct.Pin = BUTTON_1;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull= GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(BUTTON_1_PORT, &GPIO_InitStruct);
 
-	In our case, we want a max frequency for timer, so we set prescaller to 0
-	And our timer will have tick frequency
 
-	timer_tick_frequency = 84000000 / (0 + 1) = 84000000
-*/
-	TIM_BaseStruct.TIM_Prescaler = 0;
-	/* Count up */
-    TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;
-/*
-	Set timer period when it have reset
-	First you have to know max value for timer
-	In our case it is 16bit = 65535
-	To get your frequency for PWM, equation is simple
+    TOUCH_RESET_PORT_RCC();
+	GPIO_InitStruct.Pin = TOUCH_RESET;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(TOUCH_RESET_PORT, &GPIO_InitStruct);
 
-	PWM_frequency = timer_tick_frequency / (TIM_Period + 1)
-
-	If you know your PWM frequency you want to have timer period set correct
-
-	TIM_Period = timer_tick_frequency / PWM_frequency - 1
-
-	In our case, for 10Khz PWM_frequency, set Period to
-
-	TIM_Period = 84000000 / 10000 - 1 = 8399
-
-	If you get TIM_Period larger than max timer value (in our case 65535),
-	you have to choose larger prescaler and slow down timer tick frequency
-*/
-    TIM_BaseStruct.TIM_Period = 8399; /* 10kHz PWM */
-    TIM_BaseStruct.TIM_ClockDivision = TIM_CKD_DIV1;
-    TIM_BaseStruct.TIM_RepetitionCounter = 0;
-	/* Initialize TIM1 */
-    TIM_TimeBaseInit(TIM1, &TIM_BaseStruct);
-	/* Start count on TIM1 */
-    TIM_Cmd(TIM1, ENABLE);
-//**************************************************************************
-	TIM_OCInitTypeDef TIM_OCStruct;
-
-	/* Common settings */
-
-	/* PWM mode 2 = Clear on compare match */
-	/* PWM mode 1 = Set on compare match */
-	TIM_OCStruct.TIM_OCMode = TIM_OCMode_PWM2;
-	TIM_OCStruct.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCStruct.TIM_OCPolarity = TIM_OCPolarity_Low;
-
-	TIM_OCStruct.TIM_Pulse = 500; /* 100% duty cycle */
-	TIM_OC4Init(TIM1, &TIM_OCStruct);
-	TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
-
-	TIM_BDTRInitTypeDef TIM_BDTRInitStruct;
-	TIM_BDTRStructInit(&TIM_BDTRInitStruct);
-	TIM_BDTRConfig(TIM1, &TIM_BDTRInitStruct);
-	TIM_CCPreloadControl(TIM1, ENABLE);
-	TIM_CtrlPWMOutputs(TIM1, ENABLE);
+	HAL_GPIO_WritePin(TOUCH_RESET_PORT,TOUCH_RESET,GPIO_PIN_SET);
 }
-
-static void LCD_spi_init(void)
+void MX_SPI3_Init(void)
 {
+   SPI_HandleTypeDef hspi3;
+  /* USER CODE BEGIN SPI3_Init 0 */
 
-	GPIO_InitTypeDef GPIO_InitStruct;
-	SPI_InitTypeDef SPI_InitStruct;
+  /* USER CODE END SPI3_Init 0 */
 
-	// enable clock for used IO pins
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+  /* USER CODE BEGIN SPI3_Init 1 */
 
-	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_11 | GPIO_Pin_10;
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOC, &GPIO_InitStruct);
+  /* USER CODE END SPI3_Init 1 */
+  /* SPI3 parameter configuration*/
+  hspi3.Instance = SPI3;
+  hspi3.Init.Mode = SPI_MODE_MASTER;
+  hspi3.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi3.Init.NSS = SPI_NSS_SOFT;
+  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi3.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI3_Init 2 */
+//   void spi3_ini()
+//   {
+//   	GPIO_InitTypeDef GPIO_InitStruct;
+//   	SPI_InitTypeDef SPI_InitStruct;
 
-	// connect SPI1 pins to SPI alternate function
-	GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_SPI3);
-	GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_SPI3);
-	GPIO_PinAFConfig(GPIOC, GPIO_PinSource12, GPIO_AF_SPI3);
+//   	// enable clock for used IO pins
+//   	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+
+//   	GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_11 | GPIO_PIN_10;
+//   	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;;
+//   	GPIO_InitStruct.Speed = GPIO_Speed_50MHz;
+//   	GPIO_InitStruct.Pull = GPIO_NOPULL;
+//   	GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
+//   	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
 
-	// enable peripheral clock
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
 
-	/* configure SPI1 in Mode 0
-	 * CPOL = 1 --> clock is high when idle
-	 * CPHA = 1 --> data is sampled at the second edge
-	 */
-	SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex; // set to full duplex mode, seperate MOSI and MISO lines
-	SPI_InitStruct.SPI_Mode = SPI_Mode_Master;     // transmit in master mode, NSS pin has to be always high
-	SPI_InitStruct.SPI_DataSize = SPI_DataSize_8b; // one packet of data is 8 bits wide
-	SPI_InitStruct.SPI_CPOL = SPI_CPOL_Low;        // clock is low
-	SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;      // data sampled at first edge
-	SPI_InitStruct.SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; // set the NSS management to internal and pull internal NSS high
-	SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2; // SPI frequency is APB2 frequency / 4
-	SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;// data is transmitted MSB first
-	SPI_Init(SPI3, &SPI_InitStruct);
+//   	// enable peripheral clock
+//   	RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
 
-	SPI_Cmd(SPI3, ENABLE); // enable SPI1
-}
-static void LCD_i2c_init(void)
-{
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+//   	/* configure SPI1 in Mode 0
+//   	 * CPOL = 1 --> clock is high when idle
+//   	 * CPHA = 1 --> data is sampled at the second edge
+//   	 */
+//   	SPI_InitStruct.Direction = SPI_Direction_2Lines_FullDuplex; // set to full duplex mode, seperate MOSI and MISO lines
+//   	SPI_InitStruct.Mode = SPI_Mode_Master;     // transmit in master mode, NSS pin has to be always high
+//   	SPI_InitStruct.DataSize = SPI_DataSize_8b; // one packet of data is 8 bits wide
+//   	SPI_InitStruct.CLKPolarity = SPI_CPOL_Low;        // clock is low
+//   	SPI_InitStruct.CLKPhase = SPI_CPHA_1Edge;      // data sampled at first edge
+//   	SPI_InitStruct.NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; // set the NSS management to internal and pull internal NSS high
+//   	SPI_InitStruct.BaudRatePrescaler = SPI_BaudRatePrescaler_2; // SPI frequency is APB2 frequency / 4
+//   	SPI_InitStruct.FirstBit = SPI_FirstBit_MSB;// data is transmitted MSB first
+//   	SPI_Init(SPI3, &SPI_InitStruct);
 
-	GPIO_InitTypeDef GPIO_InitStruct;
-	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_6; // we are going to use PB8 and PB9
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;			// set pins to alternate function
-	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;		// set GPIO speed
-	GPIO_InitStruct.GPIO_OType = GPIO_OType_OD;			// set output to open drain --> the line has to be only pulled low, not driven high
-	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;			// enable pull up resistors
-	GPIO_Init(GPIOB, &GPIO_InitStruct);					// init GPIOB
+//   	SPI_Cmd(SPI3, ENABLE); // enable SPI1
+//   }
 
-	GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_I2C1);	// SCL
-
-	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_7; // we are going to use PB8 and PB9
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;			// set pins to alternate function
-	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;		// set GPIO speed
-	GPIO_InitStruct.GPIO_OType = GPIO_OType_OD;			// set output to open drain --> the line has to be only pulled low, not driven high
-	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;			// enable pull up resistors
-	GPIO_Init(GPIOB, &GPIO_InitStruct);					// init GPIOB
-
-	GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_I2C1); // SDA
-
-	I2C_InitTypeDef I2C_InitStruct;
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
-	I2C_InitStruct.I2C_ClockSpeed = 400000; 		// 100kHz
-	I2C_InitStruct.I2C_Mode = I2C_Mode_I2C;			// I2C mode
-	I2C_InitStruct.I2C_DutyCycle = I2C_DutyCycle_2;	// 50% duty cycle --> standard
-	I2C_InitStruct.I2C_OwnAddress1 = 0x00;			// own address, not relevant in master mode
-	I2C_InitStruct.I2C_Ack = I2C_Ack_Disable;		// disable acknowledge when reading (can be changed later on)
-	I2C_InitStruct.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit; // set address length to 7 bit addresses
-	I2C_Init(I2C1, &I2C_InitStruct);				// init I2C1
-
-	// enable I2C1
-	I2C_Cmd(I2C1, ENABLE);
-}
-
-void LCD_FSMC_config_write(void)
-{
-
-	FSMC_NORSRAMInitTypeDef  FSMC_NORSRAMInitStructure;
-	FSMC_NORSRAMTimingInitTypeDef  p;
-	FSMC_NORSRAMTimingInitTypeDef  p1;
-
-	/* Enable FMC clock */
-	RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FSMC, ENABLE);
-
-	/*-- FSMC Configuration ------------------------------------------------------*/
-	/*----------------------- SRAM Bank 1 ----------------------------------------*/
-	/* FSMC_Bank1_NORSRAM1 configuration */
-	p.FSMC_AddressSetupTime = 2;//2;
-	p.FSMC_AddressHoldTime = 1;
-	p.FSMC_DataSetupTime = 4;//4;
-	p.FSMC_BusTurnAroundDuration = 0;
-	p.FSMC_CLKDivision = 1;
-	p.FSMC_DataLatency = 0;
-	p.FSMC_AccessMode = FSMC_AccessMode_A;
-	/* Color LCD configuration ------------------------------------
-	LCD configured as follow:
-	- Data/Address MUX = Disable
-	- Memory Type = SRAM
-	- Data Width = 16bit
-	- Write Operation = Enable
-	- Extended Mode = Enable
-	- Asynchronous Wait = Disable */
-
-	/*-- FSMC Configuration ------------------------------------------------------*/
-	/*----------------------- SRAM Bank 1 ----------------------------------------*/
-	/* FSMC_Bank1_NORSRAM1 configuration */
-	p1.FSMC_AddressSetupTime = 255;//2;
-	p1.FSMC_AddressHoldTime = 1;
-	p1.FSMC_DataSetupTime = 40;//4;
-	p1.FSMC_BusTurnAroundDuration = 0;
-	p1.FSMC_CLKDivision = 1;
-	p1.FSMC_DataLatency = 0;
-	p1.FSMC_AccessMode = FSMC_AccessMode_A;
-	/* Color LCD configuration ------------------------------------
-	LCD configured as follow:
-	- Data/Address MUX = Disable
-	- Memory Type = SRAM
-	- Data Width = 16bit
-	- Write Operation = Enable
-	- Extended Mode = Enable
-	- Asynchronous Wait = Disable */
-
-	FSMC_NORSRAMInitStructure.FSMC_Bank = FSMC_Bank1_NORSRAM1;
-	FSMC_NORSRAMInitStructure.FSMC_DataAddressMux = FSMC_DataAddressMux_Disable;
-	FSMC_NORSRAMInitStructure.FSMC_MemoryType = FSMC_MemoryType_SRAM;
-	FSMC_NORSRAMInitStructure.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;
-	FSMC_NORSRAMInitStructure.FSMC_BurstAccessMode = FSMC_BurstAccessMode_Disable;
-	FSMC_NORSRAMInitStructure.FSMC_AsynchronousWait = FSMC_AsynchronousWait_Disable;
-	FSMC_NORSRAMInitStructure.FSMC_WaitSignalPolarity = FSMC_WaitSignalPolarity_Low;
-	FSMC_NORSRAMInitStructure.FSMC_WrapMode = FSMC_WrapMode_Disable;
-	FSMC_NORSRAMInitStructure.FSMC_WaitSignalActive = FSMC_WaitSignalActive_BeforeWaitState;
-	FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Enable;
-	FSMC_NORSRAMInitStructure.FSMC_WaitSignal = FSMC_WaitSignal_Disable;
-	FSMC_NORSRAMInitStructure.FSMC_ExtendedMode = FSMC_ExtendedMode_Enable;
-	FSMC_NORSRAMInitStructure.FSMC_WriteBurst = FSMC_WriteBurst_Disable;
-	FSMC_NORSRAMInitStructure.FSMC_ReadWriteTimingStruct = &p1;
-	FSMC_NORSRAMInitStructure.FSMC_WriteTimingStruct = &p;
-	FSMC_NORSRAMInit(&FSMC_NORSRAMInitStructure);
-
-	/* Enable FSMC NOR/SRAM Bank1 */
-	FSMC_NORSRAMCmd(FSMC_Bank1_NORSRAM1, ENABLE);
-}
-static void LCD_touch_ini(void )
-{
-	GPIO_InitTypeDef GPIO_InitStruct;
-	EXTI_InitTypeDef   EXTI_InitStructure;
-	NVIC_InitTypeDef   NVIC_InitStructure;
-
-	RCC_AHB1PeriphClockCmd(LCD_PIN_PORT_RCC, ENABLE);
-	GPIO_InitStruct.GPIO_Pin = LCD_PIN;
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_Init(LCD_PIN_PORT, &GPIO_InitStruct);
-
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource4);
-
-	EXTI_InitStructure.EXTI_Line = EXTI_Line4;
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
-
-	/* Enable and set EXTI5 Interrupt to the lowest priority */
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI4_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0F;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0F;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-	NVIC_SetPriority(EXTI4_IRQn,2);
-	touch_write_register(0x0E,0xC000);
-	touch_write_control(0x80);
-}
-static void LCD_touch_write_register(unsigned char adr, unsigned int val)
-{
-	I2C_start(I2C1, SLAVE_ADDRESS_TOUCH, I2C_Direction_Transmitter); // start a transmission in Master transmitter mode
-	I2C_write(I2C1, adr<<3); // write one byte to the slave
-
-	I2C_write(I2C1, val>>8); // write one byte to the slave
-	I2C_write(I2C1, val&0xFF); // write one byte to the slave
-	I2C_stop(I2C1); // stop the transmission
-}
-static void LCD_touch_write_control(unsigned char ctrl)
-{
-	I2C_start(I2C1, SLAVE_ADDRESS_TOUCH, I2C_Direction_Transmitter); // start a transmission in Master transmitter mode
-	I2C_write(I2C1, ctrl); // write one byte to the slave
-	I2C_stop(I2C1); // stop the transmission
+  /* USER CODE END SPI3_Init 2 */
 
 }
-static void LCD_ili9488_init(void)
-{
-	GPIO_ResetBits(LCD_DCX_PORT, LCD_DCX);
-	GPIO_ResetBits(LCD_CS_PORT, LCD_CS);
-	TFT_REG=0x0011;
-	GPIO_SetBits(LCD_CS_PORT, LCD_CS);
-
-	GPIO_ResetBits(LCD_DCX_PORT, LCD_DCX);
-	GPIO_ResetBits(LCD_CS_PORT, LCD_CS);
-	TFT_REG=0x0029;
-	GPIO_SetBits(LCD_CS_PORT, LCD_CS);
-
-
-	GPIO_ResetBits(LCD_DCX_PORT, LCD_DCX);
-	GPIO_ResetBits(LCD_CS_PORT, LCD_CS);
-	TFT_REG=0x003A;
-	GPIO_SetBits(LCD_DCX_PORT, LCD_DCX);
-	TFT_REG=0x0055;
-	GPIO_ResetBits(LCD_CS_PORT, LCD_CS);
-
-	GPIO_ResetBits(LCD_DCX_PORT, LCD_DCX);
-	GPIO_ResetBits(LCD_CS_PORT, LCD_CS);
-	TFT_REG=0x0036;
-	GPIO_SetBits(LCD_DCX_PORT, LCD_DCX);
-	TFT_REG=0x00E8;
-	GPIO_ResetBits(LCD_CS_PORT, LCD_CS);
-
-	delay_ms(100);
-	ili9488_fillRect(0,0,LCD_getWidth(),LCD_getHeight(),BLACK);
-}
-/*--------------Public function definition----------------------------------------*/
-
-void LCD_pwm_backlight_set(unsigned int pwm)
-{
-	if(pwm>=100)
-	{
-		pwm=100;
-	}
-
-	pwm=pwm*8399;
-	pwm=pwm/100;
-
-	TIM_OCInitTypeDef TIM_OCStruct;
-
-	/* Common settings */
-
-	/* PWM mode 2 = Clear on compare match */
-	/* PWM mode 1 = Set on compare match */
-	TIM_OCStruct.TIM_OCMode = TIM_OCMode_PWM2;
-	TIM_OCStruct.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCStruct.TIM_OCPolarity = TIM_OCPolarity_Low;
-
-	TIM_OCStruct.TIM_Pulse = pwm; /* 100% duty cycle */
-	TIM_OC4Init(TIM1, &TIM_OCStruct);
-	TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
-
-}
-
-void LCD_touch_reset()
-{
-	GPIO_ResetBits(TOUCH_RESET_PORT,TOUCH_RESET);
-	delay_ms(10);
-	GPIO_SetBits(TOUCH_RESET_PORT,TOUCH_RESET);
-}
-
-inline void LCD_fillRect(u16 x1, u16 y1, u16 w, u16 h, u16 color) {
-    ili9488_fillRect(x1, y1, w ,h ,color);
-
-//	u32 count = w * h;
-//    LCD_setAddressWindowToWrite(x1, y1, (u16) (x1 + w - 1), (u16) (y1 + h - 1));
-//    LCD_setSpi16();
-//    dmaFill16(color, count);
-//    LCD_setSpi8();
-}
-
-
