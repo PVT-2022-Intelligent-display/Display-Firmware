@@ -19,31 +19,21 @@
 //#include "ILI9488/fsmc_ili9488.h"
 //#include "ILI9488/config.h"
 //#include "lcd/lcd_touch.h"
-
+void initialize_ili9488();
 void interrupt_initialize_priorities();
 void iopins_ini();
+void ili9488_fillRect(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color);
+void delay_ms(__IO uint32_t nCount1);
+void ili9488_set_coordinates(uint16_t x1,uint16_t y1, uint16_t x2,uint16_t y2);
 
 void Init_LCD()
 {
 	interrupt_initialize_priorities();		// initialize IRQ
 	//*****************************************************************************
 		iopins_ini();							// initialize IO pins
-		spi3_ini();								// initialize SPI LCD interface
-		i2c_ini();								// initialize I2C
-
-		TFT_CtrlLinesConfig();					// initialize TFT
-		TFT_FSMCConfig_write();					// initialize TFT
-
-		ini_lcd_pwm();							// initalize TFT backlight
-		pwm_backlight_set(70);					// backlight full
-		touch_reset();							// reset TP controller
-		touch_ini();							// initialize TP IRQ
-		touch_write_register(0x0E,0xC000);
-		touch_write_control(0x80);
 
 	//*****************************************************************************
 		initialize_ili9488();					// initialize LCD
-		dmaInit();								// initialize DMA
 }
 
 void interrupt_initialize_priorities()
@@ -53,6 +43,11 @@ void interrupt_initialize_priorities()
 
 void iopins_ini()
 {
+
+	 __GPIOC_CLK_ENABLE();
+	 __GPIOD_CLK_ENABLE();
+	 __GPIOA_CLK_ENABLE();
+	 __GPIOB_CLK_ENABLE();
 	GPIO_InitTypeDef GPIO_InitStruct;
 
     BUZZER_PORT_RCC();
@@ -165,151 +160,77 @@ void iopins_ini()
 
 	HAL_GPIO_WritePin(TOUCH_RESET_PORT,TOUCH_RESET,GPIO_PIN_SET);
 }
-void MX_SPI3_Init(void)
+//*****************************************************************************
+void initialize_ili9488()
 {
-   SPI_HandleTypeDef hspi3;
-  /* USER CODE BEGIN SPI3_Init 0 */
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x0011;
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
 
-  /* USER CODE END SPI3_Init 0 */
-
-  /* USER CODE BEGIN SPI3_Init 1 */
-
-  /* USER CODE END SPI3_Init 1 */
-  /* SPI3 parameter configuration*/
-  hspi3.Instance = SPI3;
-  hspi3.Init.Mode = SPI_MODE_MASTER;
-  hspi3.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi3.Init.NSS = SPI_NSS_SOFT;
-  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi3.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SPI3_Init 2 */
-//   void spi3_ini()
-//   {
-//   	GPIO_InitTypeDef GPIO_InitStruct;
-//   	SPI_InitTypeDef SPI_InitStruct;
-
-//   	// enable clock for used IO pins
-//   	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-
-//   	GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_11 | GPIO_PIN_10;
-//   	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;;
-//   	GPIO_InitStruct.Speed = GPIO_Speed_50MHz;
-//   	GPIO_InitStruct.Pull = GPIO_NOPULL;
-//   	GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-//   	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS, GPIO_PIN_RESET);
+	TFT_REG=0x0029;
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS, GPIO_PIN_SET);
 
 
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x003A;
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
+	TFT_REG=0x0055;
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS, GPIO_PIN_RESET);
 
-//   	// enable peripheral clock
-//   	RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x0036;
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
+	TFT_REG=0x00E8;
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
 
-//   	/* configure SPI1 in Mode 0
-//   	 * CPOL = 1 --> clock is high when idle
-//   	 * CPHA = 1 --> data is sampled at the second edge
-//   	 */
-//   	SPI_InitStruct.Direction = SPI_Direction_2Lines_FullDuplex; // set to full duplex mode, seperate MOSI and MISO lines
-//   	SPI_InitStruct.Mode = SPI_Mode_Master;     // transmit in master mode, NSS pin has to be always high
-//   	SPI_InitStruct.DataSize = SPI_DataSize_8b; // one packet of data is 8 bits wide
-//   	SPI_InitStruct.CLKPolarity = SPI_CPOL_Low;        // clock is low
-//   	SPI_InitStruct.CLKPhase = SPI_CPHA_1Edge;      // data sampled at first edge
-//   	SPI_InitStruct.NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; // set the NSS management to internal and pull internal NSS high
-//   	SPI_InitStruct.BaudRatePrescaler = SPI_BaudRatePrescaler_2; // SPI frequency is APB2 frequency / 4
-//   	SPI_InitStruct.FirstBit = SPI_FirstBit_MSB;// data is transmitted MSB first
-//   	SPI_Init(SPI3, &SPI_InitStruct);
-
-//   	SPI_Cmd(SPI3, ENABLE); // enable SPI1
-//   }
-
-  /* USER CODE END SPI3_Init 2 */
-
+	delay_ms(100);
+	ili9488_fillRect(0,0,LCD_PIXEL_WIDTH,LCD_PIXEL_HEIGHT,ORANGE);
 }
-/* FSMC initialization function */
-static void MX_FSMC_Init(void)
-{
-  SRAM_HandleTypeDef hsram1;
-
-  /* USER CODE BEGIN FSMC_Init 0 */
-
-  /* USER CODE END FSMC_Init 0 */
-
-  FSMC_NORSRAM_TimingTypeDef Timing = {0};
-  FSMC_NORSRAM_TimingTypeDef ExtTiming = {0};
-
-  /* USER CODE BEGIN FSMC_Init 1 */
-
-  /* USER CODE END FSMC_Init 1 */
-
-  /** Perform the SRAM1 memory initialization sequence
-  */
-  hsram1.Instance = FSMC_NORSRAM_DEVICE;
-  hsram1.Extended = FSMC_NORSRAM_EXTENDED_DEVICE;
-  /* hsram1.Init */
-  hsram1.Init.NSBank = FSMC_NORSRAM_BANK1;
-  hsram1.Init.DataAddressMux = FSMC_DATA_ADDRESS_MUX_DISABLE;
-  hsram1.Init.MemoryType = FSMC_MEMORY_TYPE_SRAM;
-  hsram1.Init.MemoryDataWidth = FSMC_NORSRAM_MEM_BUS_WIDTH_16;
-  hsram1.Init.BurstAccessMode = FSMC_BURST_ACCESS_MODE_DISABLE;
-  hsram1.Init.WaitSignalPolarity = FSMC_WAIT_SIGNAL_POLARITY_LOW;
-  hsram1.Init.WrapMode = FSMC_WRAP_MODE_DISABLE;
-  hsram1.Init.WaitSignalActive = FSMC_WAIT_TIMING_BEFORE_WS;
-  hsram1.Init.WriteOperation = FSMC_WRITE_OPERATION_ENABLE;
-  hsram1.Init.WaitSignal = FSMC_WAIT_SIGNAL_DISABLE;
-  hsram1.Init.ExtendedMode = FSMC_EXTENDED_MODE_ENABLE;
-  hsram1.Init.AsynchronousWait = FSMC_ASYNCHRONOUS_WAIT_DISABLE;
-  hsram1.Init.WriteBurst = FSMC_WRITE_BURST_DISABLE;
-  hsram1.Init.PageSize = FSMC_PAGE_SIZE_NONE;
-  /* Timing */
-  Timing.AddressSetupTime = 2;
-  Timing.AddressHoldTime = 1;
-  Timing.DataSetupTime = 4;
-  Timing.BusTurnAroundDuration = 0;
-  Timing.CLKDivision = 1;
-  Timing.DataLatency = 0;
-  Timing.AccessMode = FSMC_ACCESS_MODE_A;
-  /* ExtTiming */
-  ExtTiming.AddressSetupTime = 255;
-  ExtTiming.AddressHoldTime = 1;
-  ExtTiming.DataSetupTime = 40;
-  ExtTiming.BusTurnAroundDuration = 0;
-  ExtTiming.CLKDivision = 1;
-  ExtTiming.DataLatency = 0;
-  ExtTiming.AccessMode = FSMC_ACCESS_MODE_A;
-
-  if (HAL_SRAM_Init(&hsram1, &Timing, &ExtTiming) != HAL_OK)
-  {
-    Error_Handler( );
+void delay_ms(__IO uint32_t nCount1) {
+	__IO uint32_t nCount=nCount1*23666;
+	while(nCount--) {
   }
-
-  /* USER CODE BEGIN FSMC_Init 2 */
-
-  /* USER CODE END FSMC_Init 2 */
 }
-
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
-
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
+void ili9488_fillRect(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
-  /* USER CODE END Error_Handler_Debug */
+	uint32_t count = w * h;
+	ili9488_set_coordinates(x1, y1, (uint16_t) (x1 + w - 1), (uint16_t) (y1 + h - 1));
+
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x002C;
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
+
+	for(unsigned int i=0; i<count; i++)
+	{
+		TFT_REG=color;
+	}
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
+}
+void ili9488_set_coordinates(uint16_t x1,uint16_t y1, uint16_t x2, uint16_t y2)
+{
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x002A;
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
+	TFT_REG=x1>>8;
+	TFT_REG=x1&0xFF;
+	TFT_REG=x2>>8;
+	TFT_REG=x2&0xFF;
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
+
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x002B;
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
+	TFT_REG=y1>>8;
+	TFT_REG=y1&0xFF;
+	TFT_REG=y2>>8;
+	TFT_REG=y2&0xFF;
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
 }
