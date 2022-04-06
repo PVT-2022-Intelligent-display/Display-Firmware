@@ -238,7 +238,6 @@ void USART1_IRQHandler(void)
 }
 
 /**
-
   * @brief This function handles USART2 global interrupt.
   */
 void USART2_IRQHandler(void)
@@ -263,7 +262,9 @@ void USART2_IRQHandler(void)
   			USART2->DR = get_from_tx_buffer(RS485_UART);
   		}
   	}
+}
   /* USER CODE END USART2_IRQn 1 */
+
 /**
   * @brief This function handles DMA2 stream0 global interrupt.
   */

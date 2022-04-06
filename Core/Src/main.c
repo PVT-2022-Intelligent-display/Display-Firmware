@@ -56,6 +56,8 @@ DMA_HandleTypeDef hdma_spi1_tx;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
+SRAM_HandleTypeDef hsram1;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -63,12 +65,13 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_FSMC_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_DMA_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -108,8 +111,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_FSMC_Init();
   MX_USART1_UART_Init();
-
+  MX_I2C1_Init();
+  MX_DMA_Init();
+  MX_SPI3_Init();
+  MX_SPI1_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
@@ -120,7 +127,6 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   //enable uart interrupt
-  HAL_UART_Receive_IT(&huart1, (uint8_t *)huart1RxBuffer, 1);
   Init_LCD();
   static int blOn = 0;
   /* USER CODE END 2 */
@@ -164,10 +170,14 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 25;
+  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -177,12 +187,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
     Error_Handler();
   }
@@ -365,7 +375,10 @@ static void MX_USART2_UART_Init(void)
   //tx interrupt is enabled in send_usart_message() insead.
   //__HAL_UART_ENABLE_IT(&huart2, UART_IT_TXE); //turn on tx interrupt forever
   /* USER CODE END USART2_Init 2 */
-/*
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -381,7 +394,6 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
-
 
 }
 
@@ -452,7 +464,7 @@ static void MX_FSMC_Init(void)
   /* hsram1.Init */
   hsram1.Init.NSBank = FSMC_NORSRAM_BANK1;
   hsram1.Init.DataAddressMux = FSMC_DATA_ADDRESS_MUX_DISABLE;
-  hsram1.Init.MemoryType = FSMC_MEMORY_TYPE_NOR;
+  hsram1.Init.MemoryType = FSMC_MEMORY_TYPE_SRAM;
   hsram1.Init.MemoryDataWidth = FSMC_NORSRAM_MEM_BUS_WIDTH_16;
   hsram1.Init.BurstAccessMode = FSMC_BURST_ACCESS_MODE_DISABLE;
   hsram1.Init.WaitSignalPolarity = FSMC_WAIT_SIGNAL_POLARITY_LOW;
@@ -465,20 +477,20 @@ static void MX_FSMC_Init(void)
   hsram1.Init.WriteBurst = FSMC_WRITE_BURST_DISABLE;
   hsram1.Init.PageSize = FSMC_PAGE_SIZE_NONE;
   /* Timing */
-  Timing.AddressSetupTime = 255;
-  Timing.AddressHoldTime = 1;
-  Timing.DataSetupTime = 40;
+  Timing.AddressSetupTime = 2;
+  Timing.AddressHoldTime = 15;
+  Timing.DataSetupTime = 4;
   Timing.BusTurnAroundDuration = 0;
-  Timing.CLKDivision = 1;
-  Timing.DataLatency = 0;
+  Timing.CLKDivision = 16;
+  Timing.DataLatency = 17;
   Timing.AccessMode = FSMC_ACCESS_MODE_A;
   /* ExtTiming */
-  ExtTiming.AddressSetupTime = 2;
-  ExtTiming.AddressHoldTime = 1;
-  ExtTiming.DataSetupTime = 4;
+  ExtTiming.AddressSetupTime = 15;
+  ExtTiming.AddressHoldTime = 15;
+  ExtTiming.DataSetupTime = 40;
   ExtTiming.BusTurnAroundDuration = 0;
-  ExtTiming.CLKDivision = 1;
-  ExtTiming.DataLatency = 0;
+  ExtTiming.CLKDivision = 16;
+  ExtTiming.DataLatency = 17;
   ExtTiming.AccessMode = FSMC_ACCESS_MODE_A;
 
   if (HAL_SRAM_Init(&hsram1, &Timing, &ExtTiming) != HAL_OK)

@@ -413,6 +413,19 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     /* Peripheral clock disable */
     __HAL_RCC_USART2_CLK_DISABLE();
 
+    /**USART2 GPIO Configuration
+    PA2     ------> USART2_TX
+    PA3     ------> USART2_RX
+    */
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2|GPIO_PIN_3);
+
+    /* USART2 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(USART2_IRQn);
+  /* USER CODE BEGIN USART2_MspDeInit 1 */
+
+  /* USER CODE END USART2_MspDeInit 1 */
+  }
+
 }
 
 static uint32_t FSMC_Initialized = 0;
@@ -485,20 +498,15 @@ void HAL_SRAM_MspInit(SRAM_HandleTypeDef* hsram){
   /* USER CODE END SRAM_MspInit 1 */
 }
 
+static uint32_t FSMC_DeInitialized = 0;
 
-    /**USART2 GPIO Configuration
-    PA2     ------> USART2_TX
-    PA3     ------> USART2_RX
-    */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2|GPIO_PIN_3);
+static void HAL_FSMC_MspDeInit(void){
+  /* USER CODE BEGIN FSMC_MspDeInit 0 */
 
-    /* USART2 interrupt DeInit */
-    HAL_NVIC_DisableIRQ(USART2_IRQn);
-  /* USER CODE BEGIN USART2_MspDeInit 1 */
-
-  /* USER CODE END USART2_MspDeInit 1 */
+  /* USER CODE END FSMC_MspDeInit 0 */
+  if (FSMC_DeInitialized) {
+    return;
   }
-
   FSMC_DeInitialized = 1;
   /* Peripheral clock enable */
   __HAL_RCC_FSMC_CLK_DISABLE();
@@ -545,6 +553,7 @@ void HAL_SRAM_MspDeInit(SRAM_HandleTypeDef* hsram){
   HAL_FSMC_MspDeInit();
   /* USER CODE BEGIN SRAM_MspDeInit 1 */
 
+  /* USER CODE END SRAM_MspDeInit 1 */
 }
 
 /* USER CODE BEGIN 1 */
