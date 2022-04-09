@@ -9,7 +9,19 @@
   *           + IO operation functions
   *           + Peripheral Control functions
   *           + Peripheral State functions
+
+  ******************************************************************************
+  * @attention
   *
+  * Copyright (c) 2016 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+
   @verbatim
   ==============================================================================
                         ##### How to use this driver #####
@@ -184,6 +196,7 @@
             (#) RX processes are HAL_SPI_Receive(), HAL_SPI_Receive_IT() and HAL_SPI_Receive_DMA()
             (#) TX processes are HAL_SPI_Transmit(), HAL_SPI_Transmit_IT() and HAL_SPI_Transmit_DMA()
 
+
   ******************************************************************************
   * @attention
   *
@@ -196,6 +209,7 @@
   *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
+
   */
 
 /* Includes ------------------------------------------------------------------*/
@@ -3156,6 +3170,7 @@ static void SPI_2linesRxISR_8BIT(struct __SPI_HandleTypeDef *hspi)
   */
 static void SPI_2linesRxISR_8BITCRC(struct __SPI_HandleTypeDef *hspi)
 {
+
   __IO uint8_t  * ptmpreg8;
   __IO uint8_t  tmpreg8 = 0;
 
@@ -3259,6 +3274,7 @@ static void SPI_2linesRxISR_16BITCRC(struct __SPI_HandleTypeDef *hspi)
   /* Read 16bit CRC to flush Data Register */
   tmpreg = READ_REG(hspi->Instance->DR);
   /* To avoid GCC warning */
+
   UNUSED(tmpreg);  
 
   /* Disable RXNE interrupt */
@@ -3314,7 +3330,8 @@ static void SPI_2linesTxISR_16BIT(struct __SPI_HandleTypeDef *hspi)
   */
 static void SPI_RxISR_8BITCRC(struct __SPI_HandleTypeDef *hspi)
 {
-  __IO uint8_t  * ptmpreg8;
+
+  __IO uint8_t  *ptmpreg8;
   __IO uint8_t  tmpreg8 = 0;
 
   /* Initialize the 8bit temporary pointer */
@@ -3526,7 +3543,8 @@ static HAL_StatusTypeDef SPI_WaitFlagStateUntilTimeout(SPI_HandleTypeDef *hspi, 
         return HAL_TIMEOUT;
       }
       /* If Systick is disabled or not incremented, deactivate timeout to go in disable loop procedure */
-      if(count == 0U)
+
+      if (count == 0U)
       {
         tmp_timeout = 0U;
       }
@@ -3915,4 +3933,6 @@ static void SPI_AbortTx_ISR(SPI_HandleTypeDef *hspi)
   * @}
   */
 
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+

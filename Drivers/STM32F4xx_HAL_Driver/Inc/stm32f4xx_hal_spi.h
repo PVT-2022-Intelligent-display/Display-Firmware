@@ -6,6 +6,7 @@
   ******************************************************************************
   * @attention
   *
+
   * <h2><center>&copy; Copyright (c) 2016 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
@@ -13,6 +14,7 @@
   * the "License"; You may not use this file except in compliance with the
   * License. You may obtain a copy of the License at:
   *                        opensource.org/licenses/BSD-3-Clause
+
   *
   ******************************************************************************
   */
@@ -656,7 +658,9 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi);
 
 /* Callbacks Register/UnRegister functions  ***********************************/
 #if (USE_HAL_SPI_REGISTER_CALLBACKS == 1U)
+
 HAL_StatusTypeDef HAL_SPI_RegisterCallback(SPI_HandleTypeDef *hspi, HAL_SPI_CallbackIDTypeDef CallbackID, pSPI_CallbackTypeDef pCallback);
+
 HAL_StatusTypeDef HAL_SPI_UnRegisterCallback(SPI_HandleTypeDef *hspi, HAL_SPI_CallbackIDTypeDef CallbackID);
 #endif /* USE_HAL_SPI_REGISTER_CALLBACKS */
 /**
@@ -727,4 +731,6 @@ uint32_t             HAL_SPI_GetError(SPI_HandleTypeDef *hspi);
 
 #endif /* STM32F4xx_HAL_SPI_H */
 
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
