@@ -26,8 +26,10 @@
 #include <stm32f4xx_hal_gpio.h>
 #include <stdio.h>
 #include "uart.h"
-
 #include "uartDemo.h"
+#include "extFlash.h"
+#include "extFlashDemo.h"
+#include "LCD_driver.h"
 
 /* USER CODE END Includes */
 
@@ -50,8 +52,6 @@
 
 SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi3;
-DMA_HandleTypeDef hdma_spi1_rx;
-DMA_HandleTypeDef hdma_spi1_tx;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -68,7 +68,6 @@ static void MX_GPIO_Init(void);
 static void MX_FSMC_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_DMA_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART2_UART_Init(void);
@@ -114,16 +113,9 @@ int main(void)
   MX_FSMC_Init();
   MX_USART1_UART_Init();
   MX_I2C1_Init();
-  MX_DMA_Init();
   MX_SPI3_Init();
   MX_SPI1_Init();
   MX_USART2_UART_Init();
-  /* USER CODE BEGIN 2 */
-
-  MX_I2C1_Init();
-  MX_DMA_Init();
-  MX_SPI3_Init();
-  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
   //enable uart interrupt
@@ -134,6 +126,9 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   printf("Entering main loop\n\r");
+
+  flashDemoPrintLast();
+
   int loopNumber = 0;
 
   while (1)
@@ -142,6 +137,12 @@ int main(void)
 	int msecSleep = 500;
 	printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
 	HAL_Delay(1000*secSleep + msecSleep);
+
+	static int flashDone = 0;
+	if(!flashDone){
+		flashDone = flashDemoLoop();
+		continue;
+	}
 
 	uartDemoLoop();
 
@@ -252,9 +253,9 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Mode = SPI_MODE_MASTER;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi1.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
   hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
@@ -265,7 +266,7 @@ static void MX_SPI1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN SPI1_Init 2 */
-
+  __HAL_SPI_ENABLE(&hspi1);
   /* USER CODE END SPI1_Init 2 */
 
 }
@@ -375,25 +376,6 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA2_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA2_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
-  /* DMA2_Stream3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -411,10 +393,17 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LCD_RES_GPIO_Port, LCD_RES_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|LCD_RES_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PA4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA11 */
   GPIO_InitStruct.Pin = GPIO_PIN_11;
