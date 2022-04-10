@@ -91,7 +91,6 @@ void ext_flash_write(unsigned int sector_adress, char *buff, unsigned int len)
 void ext_flash_read(unsigned int sector_adress, char *buff, unsigned int len)
 {
 	unsigned char command[4];
-	unsigned int i;
 
 	command[0]=0x03;
 	command[1]=((char *)&sector_adress)[3];
@@ -105,7 +104,11 @@ void ext_flash_read(unsigned int sector_adress, char *buff, unsigned int len)
 	SPI1_Transfer((sector_adress>>8)&0xFF);
 	SPI1_Transfer(sector_adress&0xFF);
 
-	dmaReceiveDataCont8_FLASH(command, 4, buff, len);
+	//dmaReceiveDataCont8_FLASH(command, 4, buff, len); //Can't figure out how to get this to work with HAL, so reading without DMA instead:
+
+	for(unsigned int i = 0; i<len; i++){
+		*(buff+i) = SPI1_Transfer(0x00);
+	}
 
 	flashCSSet();
 }

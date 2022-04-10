@@ -110,7 +110,7 @@
 #define LCD_PIXEL_COUNT    LCD_PIXEL_WIDTH * LCD_PIXEL_HEIGHT
 //</editor-fold>
 
-#define SPI_MASTER                   SPI1
+//#define SPI_MASTER                   SPI1 define moved to spi routines
 
 // <editor-fold desc="Colors">
 

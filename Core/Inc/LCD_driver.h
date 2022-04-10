@@ -104,7 +104,7 @@
 #define 	ENC_READY       1
 #define 	ENC_INIT        3
 
-#define SPI_MASTER                   SPI1
+//#define SPI_MASTER                   SPI1  define moved tro spi_routines
 
 // <editor-fold desc="Colors">
 
