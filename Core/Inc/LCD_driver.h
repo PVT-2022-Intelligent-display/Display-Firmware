@@ -92,10 +92,6 @@
 #define		FRAM_CS_PORT_RCC()		 __GPIOB_CLK_ENABLE();
 #define		FRAM_CS					GPIO_PIN_9
 
-#define		TOUCH_RESET_PORT		GPIOB
-#define		TOUCH_RESET_PORT_RCC()	 __GPIOB_CLK_ENABLE();
-#define		TOUCH_RESET				GPIO_PIN_5
-
 
 
 #define 	ENC_FORWARD     0
