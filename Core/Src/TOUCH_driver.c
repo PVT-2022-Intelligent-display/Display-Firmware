@@ -88,7 +88,7 @@ void touch_periodic_process()
 		{
 			//if(touch_ignore<rtc)
 			//{
-				printf(serial_data,"TOUCH=%d,%d\n",touch.x,touch.y);
+				printf("TOUCH=%d,%d\n",touch.x,touch.y);
 				//USART_puts(DBG_UART,serial_data,strlen(serial_data));
 
 				//touch_ignore=rtc+20;
