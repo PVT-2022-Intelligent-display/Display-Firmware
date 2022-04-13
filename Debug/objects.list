@@ -1,4 +1,5 @@
 "./Core/Src/LCD_driver.o"
+"./Core/Src/LCD_touch_driver.o"
 "./Core/Src/extFlash.o"
 "./Core/Src/extFlashDemo.o"
 "./Core/Src/main.o"

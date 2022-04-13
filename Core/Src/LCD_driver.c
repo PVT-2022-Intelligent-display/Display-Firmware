@@ -24,8 +24,9 @@ void interrupt_initialize_priorities();
 void iopins_ini();
 void ili9488_fillRect(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color);
 void delay_ms(__IO uint32_t nCount1);
-void ili9488_set_coordinates(uint16_t x1,uint16_t y1, uint16_t x2,uint16_t y2);
-
+void pwm_backlight_set(unsigned int pwm);
+void ili9488_showArray_wo_coordinates(uint16_t *data, uint32_t count);
+void ili9488_set_coordinates(uint16_t x1,uint16_t y1, uint16_t x2, uint16_t y2);
 void Init_LCD()
 {
 	interrupt_initialize_priorities();		// initialize IRQ
@@ -34,6 +35,7 @@ void Init_LCD()
 
 	//*****************************************************************************
 		initialize_ili9488();					// initialize LCD
+		pwm_backlight_set(100);
 }
 
 void interrupt_initialize_priorities()
@@ -232,5 +234,87 @@ void ili9488_set_coordinates(uint16_t x1,uint16_t y1, uint16_t x2, uint16_t y2)
 	TFT_REG=y1&0xFF;
 	TFT_REG=y2>>8;
 	TFT_REG=y2&0xFF;
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
+}
+void pwm_backlight_set(unsigned int pwm)
+{
+
+	if(pwm>=100)
+	{
+		pwm=100;
+	}else if(pwm <= 0)
+	{
+		pwm = 0;
+	}
+
+	pwm=(unsigned int)((MAX_PWM_PULSE * pwm)/100);
+
+	/* Common settings */
+      TIM_HandleTypeDef htim1;
+	  TIM_MasterConfigTypeDef sMasterConfig = {0};
+	  TIM_OC_InitTypeDef sConfigOC = {0};
+	  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+	  htim1.Instance = TIM1;
+	  htim1.Init.Prescaler = 0;
+	  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+	  htim1.Init.Period = 65535;
+	  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	  htim1.Init.RepetitionCounter = 0;
+	  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	  HAL_TIM_PWM_Stop(&htim1,TIM_CHANNEL_4);
+	  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	  sConfigOC.Pulse = pwm;
+	  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+	  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+	  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+	  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+	  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+	  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+	  sBreakDeadTimeConfig.DeadTime = 0;
+	  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+	  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+	  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+	  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+
+	  HAL_TIM_MspPostInit(&htim1);
+	  HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_4);
+
+
+}
+inline void LCD_WritePixel(uint16_t x, uint16_t y, uint16_t color) {
+
+	ili9488_set_coordinates(x,y,x,y);
+	ili9488_showArray_wo_coordinates(color,1);
+}
+void ili9488_showArray_wo_coordinates(uint16_t *data, uint32_t count)
+{
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x002C;
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
+
+	for(unsigned int i=0; i<count; i++)
+	{
+		TFT_REG=data[i];
+	}
 	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
 }

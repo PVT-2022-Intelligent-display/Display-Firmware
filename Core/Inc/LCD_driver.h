@@ -6,6 +6,7 @@
 #ifndef LCD_DRIVER_H_
 #define LCD_DRIVER_H_
 
+#define 	MAX_PWM_PULSE  			65535
 
 #define 	TFT_REG      			(*((volatile unsigned short *) 0x60000000))
 
@@ -256,6 +257,8 @@ void ini_lcd_pwm(void);
 void pwm_backlight_set(unsigned int pwm);
 
 void interrupt_initialize_priorities();
+
+void LCD_WritePixel(uint16_t x, uint16_t y, uint16_t color);
 
 typedef struct
 {
