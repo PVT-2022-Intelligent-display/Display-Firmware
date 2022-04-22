@@ -28,6 +28,11 @@ void ext_flash_continuous_read_read(char *buff, unsigned int len);
 void ext_flash_continuous_read_skip(unsigned int len);
 void ext_flash_continuous_read_finish();
 
+void ext_flash_continuous_write_begin(unsigned int sector_adress);
+void ext_flash_continuous_write_write(char *buff, unsigned int len);
+void ext_flash_continuous_write_finish();
+
+
 
 
 #endif /* INC_EXTFLASH_H_ */

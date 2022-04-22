@@ -12,7 +12,6 @@
 struct generalConfig
 {
 	uint8_t totalScreens;
-
 };
 
 
