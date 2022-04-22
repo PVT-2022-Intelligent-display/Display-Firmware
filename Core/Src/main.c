@@ -135,7 +135,7 @@ int main(void)
   {
 	int secSleep = 1;
 	int msecSleep = 500;
-	printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
+	printf("Sleeping %d.%d secs.  LN %d\r\n", secSleep, msecSleep, loopNumber++);
 	HAL_Delay(1000*secSleep + msecSleep);
 
 	static int flashDone = 0;

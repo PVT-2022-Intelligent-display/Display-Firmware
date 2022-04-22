@@ -43,8 +43,6 @@ void ext_flash_erase_4kB(unsigned int sector_adress)
 	ext_flash_wren();
 
 	flashCSReset();
-
-
 	SPI1_Transfer(0x20);
 	SPI1_Transfer((sector_adress>>16)&0xFF);
 	SPI1_Transfer((sector_adress>>8)&0xFF);
@@ -90,27 +88,9 @@ void ext_flash_write(unsigned int sector_adress, char *buff, unsigned int len)
 }
 void ext_flash_read(unsigned int sector_adress, char *buff, unsigned int len)
 {
-	unsigned char command[4];
-
-	command[0]=0x03;
-	command[1]=((char *)&sector_adress)[3];
-	command[2]=((char *)&sector_adress)[2];
-	command[3]=((char *)&sector_adress)[1];
-
-	flashCSReset();
-
-	SPI1_Transfer(0x03);
-	SPI1_Transfer((sector_adress>>16)&0xFF);
-	SPI1_Transfer((sector_adress>>8)&0xFF);
-	SPI1_Transfer(sector_adress&0xFF);
-
-	//dmaReceiveDataCont8_FLASH(command, 4, buff, len); //Can't figure out how to get this to work with HAL, so reading without DMA instead:
-
-	for(unsigned int i = 0; i<len; i++){
-		*(buff+i) = SPI1_Transfer(0x00);
-	}
-
-	flashCSSet();
+	ext_flash_continuous_read_begin(sector_adress);
+	ext_flash_continuous_read_read(buff, len);
+	ext_flash_continuous_read_finish();
 }
 unsigned char ext_flash_read_CR2V()
 {
@@ -140,6 +120,45 @@ void ext_flash_wren()
 	SPI1_Transfer(0x06);
 	flashCSSet();
 }
+
+
+//Continuous functions below keep conection open while reading, allowing for access to data not aligned to 4kB sectors
+void ext_flash_continuous_read_begin(unsigned int sector_adress){
+	/*unsigned char command[4];
+	command[0]=0x03;
+	command[1]=((char *)&sector_adress)[3];
+	command[2]=((char *)&sector_adress)[2];
+	command[3]=((char *)&sector_adress)[1];*/
+
+	flashCSReset();
+
+	SPI1_Transfer(0x03);
+	SPI1_Transfer((sector_adress>>16)&0xFF);
+	SPI1_Transfer((sector_adress>>8)&0xFF);
+	SPI1_Transfer(sector_adress&0xFF);
+}
+
+void ext_flash_continuous_read_read(char *buff, unsigned int len){
+	for(unsigned int i = 0; i<len; i++){
+		*(buff+i) = SPI1_Transfer(0x00);
+	}
+}
+
+void ext_flash_continuous_read_skip(unsigned int len){
+	for(unsigned int i = 0; i<len; i++){
+			SPI1_Transfer(0x00);
+	}
+}
+void ext_flash_continuous_read_finish(){
+	flashCSSet();
+}
+
+
+
+
+
+
+
 
 /*
  *
