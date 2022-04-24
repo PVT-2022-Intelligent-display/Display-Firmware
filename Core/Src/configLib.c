@@ -19,6 +19,8 @@
 #define UART_READ_STRING() do{ count = read_usart_message(msg, &huart1, sizeof(msg), NEWLINE); } while(count==0); \
 			msg[count-1] = 0
 
+#define PRINT_OBJECT_HEADER(o) printf("[Type %2d; id %3d, beg<%3d:%3d>, end<%3d:%3d>, dLen %4d]\n\r", o.objectType, o.objectId, o.xstart, o.ystart, o.xend, o.yend, o.dataLen)
+
 objectType_t parseTypeFromString(char *str);
 
 /*
@@ -112,6 +114,7 @@ int configFromUart(){
 		sectorBufferIndex += sizeof(screenVar);
 
 		while(currentScreenObjectsLeft > 0){
+			currentScreenObjectsLeft--;
 			struct object currentObject;
 			UART_READ_STRING();
 			currentObject.objectType = parseTypeFromString(msg);
@@ -131,6 +134,8 @@ int configFromUart(){
 			currentObject.yend = (uint16_t) atoi(msg);
 			UART_READ_STRING();
 			currentObject.dataLen = (uint16_t) atoi(msg);
+
+			PRINT_OBJECT_HEADER(currentObject);
 
 			if(currentObject.dataLen > MAX_DATA_SIZE){
 				printf("[cl] Object (id=%d) data too large. %d\n\r", currentObject.objectId);
@@ -164,19 +169,21 @@ int configFromUart(){
 			//object header appended to buffer. Now move on to the hex data...
 
 			uint16_t objectDataBytesLeft = currentObject.dataLen;
-			int dataBufferIndex = 0;
+			dataBufferIndex = 0;
 
 			while(objectDataBytesLeft > 0){
 				do{count = read_usart_message(msg, &huart1, 2, NEWLINE);} while (count==0);
 				if(count!=2){
-					printf("[cl] Unexpected newline in hex data of object with id %d \n\r", currentObject.objectId);
+					printf("[cl] Error reading hex data of object with id %d \n\r", currentObject.objectId);
 					return 7;
 				}
 				msg[2] = 0;
 				//two bytes representing hex string read.
 				uint8_t deHexedByte = (uint8_t) strtol(msg, NULL, 16);
+				//printf("REMOVEME: read %s -> %d \n\r", msg, deHexedByte);
 				dataBuffer[dataBufferIndex] = deHexedByte;
 				dataBufferIndex++;
+				objectDataBytesLeft--;
 			}
 
 			//dataBuffer now contains data of object, to be written to external flash.
@@ -226,16 +233,39 @@ int configFromUart(){
 	//all screens have been written.
 	//Now save generic config, since sector address array has been completed:
 
+	printf("Gconf screens %d \n\r", gconf.totalScreens);
 
 	sectorBufferIndex = 0;
 	memcpy(sectorBuffer+sectorBufferIndex, (uint8_t *) &gconf, sizeof(gconf));
-	ext_flash_write(GENERAL_CONFIG_SECTOR, sectorBuffer, SECTOR_SIZE);
 
-	printf("[cl] Config from UART finished. Last sector written to: %d \n\r", currentSector);
+	int j;
+	for(j=0; j<sizeof(gconf); j++){
+		printf("%x ", sectorBuffer[j]);
+	}
+
+	ext_flash_erase_4kB(52);
+	ext_flash_write(52, sectorBuffer, sizeof(gconf));
+	printf("[cl] Config from UART finished. Furthest sector written to: %d \n\r", currentSector);
 
 	return 0;
 
 }
+
+/*
+ * Reads the general configuration struct from external flash into variable pointed at by @destination.
+ */
+void readGeneralConfig(struct generalConfig *destination){
+	uint8_t buffer[sizeof(struct generalConfig)];
+	ext_flash_read(52, buffer, sizeof(struct generalConfig));
+	int i;
+	for(i = 0; i<sizeof(struct generalConfig); i++){
+		printf("%x,", buffer[i]);
+	}
+	printf("\n\r");
+	*destination = *((struct generalConfig *) buffer);
+}
+
+
 
 
 objectType_t parseTypeFromString(char *str){

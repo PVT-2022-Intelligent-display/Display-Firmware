@@ -31,6 +31,9 @@
 #include "extFlashDemo.h"
 #include "LCD_driver.h"
 
+#include "configLib.h"
+#include "configStructs.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -127,9 +130,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   printf("Entering main loop\n\r");
 
-  flashDemoPrintLast();
-
   int loopNumber = 0;
+
+  struct generalConfig gConf;
 
   while (1)
   {
@@ -138,7 +141,19 @@ int main(void)
 	printf("Sleeping %d.%d secs.  LN %d\r\n", secSleep, msecSleep, loopNumber++);
 	HAL_Delay(1000*secSleep + msecSleep);
 
+	//flashDemoLoop();
+	//flashDemoPrintLast();
+
 	configFromUart();
+
+	readGeneralConfig(&gConf);
+
+	printf("General config says there %d screens. \n\r", gConf.totalScreens);
+
+	int i;
+	for(i = 0; i<gConf.totalScreens;i++){
+		printf("> Screen %d saved at sector %d \n\r", i, gConf.screenSectors[i]);
+	}
 
 
     /* USER CODE END WHILE */

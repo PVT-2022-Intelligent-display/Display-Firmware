@@ -12,6 +12,8 @@
 #include <stm32f4xx_hal_gpio.h>
 #include <stdio.h>
 
+#define FLASHWRITE_DEBUG_PRINT 1
+
 void flashCSSet(){
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, 1);
 }
@@ -158,13 +160,17 @@ void ext_flash_continuous_write_begin(unsigned int sector_adress){
 	SPI1_Transfer((sector_adress>>16)&0xFF);
 	SPI1_Transfer((sector_adress>>8)&0xFF);
 	SPI1_Transfer(sector_adress&0xFF);
+	if(FLASHWRITE_DEBUG_PRINT){printf("FLASHWRITE @ %x :", sector_adress);};
 }
 void ext_flash_continuous_write_write(unsigned char *buff, unsigned int len){
 	unsigned int i;
+
 	for(i=0;i<len;i++)
 		{
 			SPI1_Transfer(buff[i]);
+			if(FLASHWRITE_DEBUG_PRINT){printf(" %x ", buff[i]);};
 		}
+	if(FLASHWRITE_DEBUG_PRINT){printf("\n\r");};
 }
 void ext_flash_continuous_write_finish(){
 	flashCSSet();
