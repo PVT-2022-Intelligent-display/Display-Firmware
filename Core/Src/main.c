@@ -133,18 +133,12 @@ int main(void)
 
   while (1)
   {
-	int secSleep = 1;
+	int secSleep = 2;
 	int msecSleep = 500;
 	printf("Sleeping %d.%d secs.  LN %d\r\n", secSleep, msecSleep, loopNumber++);
 	HAL_Delay(1000*secSleep + msecSleep);
 
-	static int flashDone = 0;
-	if(!flashDone){
-		flashDone = flashDemoLoop();
-		continue;
-	}
-
-	uartDemoLoop();
+	configFromUart();
 
 
     /* USER CODE END WHILE */

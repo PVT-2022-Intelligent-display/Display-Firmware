@@ -36,6 +36,25 @@ unsigned int ext_flash_readid()
 	return id_data;
 }
 
+void ext_flash_erase_full(){
+	unsigned int i;
+
+	ext_flash_wren();
+
+	flashCSReset();
+	SPI1_Transfer(0x60);
+	flashCSSet();
+
+	for(i=0;i<1000;i++)
+	{
+		HAL_Delay(1);
+		if(ext_flash_read_status_register_1()==0x00)
+		{
+			break;
+		}
+	}
+}
+
 void ext_flash_erase_4kB(unsigned int sector_adress)
 {
 	unsigned int i;
@@ -59,13 +78,13 @@ void ext_flash_erase_4kB(unsigned int sector_adress)
 	}
 }
 
-void ext_flash_write(unsigned int sector_adress, char *buff, unsigned int len)
+void ext_flash_write(unsigned int sector_adress, unsigned char *buff, unsigned int len)
 {
 	ext_flash_continuous_write_begin(sector_adress);
 	ext_flash_continuous_write_write(buff, len);
 	ext_flash_continuous_write_finish();
 }
-void ext_flash_read(unsigned int sector_adress, char *buff, unsigned int len)
+void ext_flash_read(unsigned int sector_adress, unsigned char *buff, unsigned int len)
 {
 	ext_flash_continuous_read_begin(sector_adress);
 	ext_flash_continuous_read_read(buff, len);
@@ -117,7 +136,7 @@ void ext_flash_continuous_read_begin(unsigned int sector_adress){
 	SPI1_Transfer(sector_adress&0xFF);
 }
 
-void ext_flash_continuous_read_read(char *buff, unsigned int len){
+void ext_flash_continuous_read_read(unsigned char *buff, unsigned int len){
 	for(unsigned int i = 0; i<len; i++){
 		*(buff+i) = SPI1_Transfer(0x00);
 	}
@@ -140,7 +159,7 @@ void ext_flash_continuous_write_begin(unsigned int sector_adress){
 	SPI1_Transfer((sector_adress>>8)&0xFF);
 	SPI1_Transfer(sector_adress&0xFF);
 }
-void ext_flash_continuous_write_write(char *buff, unsigned int len){
+void ext_flash_continuous_write_write(unsigned char *buff, unsigned int len){
 	unsigned int i;
 	for(i=0;i<len;i++)
 		{
