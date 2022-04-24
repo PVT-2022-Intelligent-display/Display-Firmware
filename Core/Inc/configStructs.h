@@ -41,7 +41,7 @@ struct object{
 	uint16_t ystart;
 	uint16_t xend;
 	uint16_t yend;
-	uint32_t dataLen;
+	uint16_t dataLen;
 };
 
 

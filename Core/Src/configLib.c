@@ -14,8 +14,9 @@
 #include "extFlash.h"
 #include "configStructs.h"
 
+
 #define NEWLINE 13
-#define UART_READ_LINE() do{ count = read_usart_message(msg, &huart1, sizeof(msg), NEWLINE); } while(count==0); \
+#define UART_READ_STRING() do{ count = read_usart_message(msg, &huart1, sizeof(msg), NEWLINE); } while(count==0); \
 			msg[count-1] = 0
 
 objectType_t parseTypeFromString(char *str);
@@ -46,7 +47,7 @@ int configFromUart(){
 		return 1;
 	}
 
-	UART_READ_LINE(); //read general config - number of screens
+	UART_READ_STRING(); //read general config - number of screens
 
 	int totalScreens = atoi(msg);
 
@@ -62,28 +63,33 @@ int configFromUart(){
 
 	printf("[cl] Ok, expecting %d screens worth of data.\n\r", totalScreens);
 
-	uint8_t curentScreenIndex = 0;
-	uint16_t currentScreenSector = GENERAL_CONFIG_SECTOR + 1;
-	uint32_t currentScreenByteBudget = 0;
+	uint8_t currentScreenIndex = -1;
+	uint16_t currentSector = GENERAL_CONFIG_SECTOR;
 	uint16_t currentScreenObjectsLeft = 0;
 
 	char screenStr[] = "screen";
 
+	#define MAX_DATA_SIZE 8192
+	uint8_t sectorBuffer[SECTOR_SIZE]; //holds sector before writing to external flash
+	int sectorBufferIndex = 0;
+	uint8_t dataBuffer[MAX_DATA_SIZE];
+	int dataBufferIndex = 0;
+
 	while(1){
 
-		if(curentScreenIndex == totalScreens){
+		if(currentScreenIndex + 1 == totalScreens){
 			printf("[cl] All screens' data received.\n\r");
 			break;
 		}
 
-		UART_READ_LINE();
+		UART_READ_STRING();
 
 		if(strcmp(screenStr, msg) != 0){
 			printf("[cl] Unexpected input - wanted %s, got %s. \n\r",screenStr, msg);
 			return 3;
 		}
 
-		UART_READ_LINE();
+		UART_READ_STRING();
 
 		currentScreenObjectsLeft = atoi(msg);
 
@@ -91,42 +97,141 @@ int configFromUart(){
 
 		struct screen screenVar;
 		screenVar.objectCount = currentScreenObjectsLeft;
-		screenVar.screenNumber = curentScreenIndex;
+		screenVar.screenNumber = currentScreenIndex;
 
-		ext_flash_erase_4kB(currentScreenSector);
-		currentScreenByteBudget = sizeof(screenVar);
+		currentSector += 1; //begin new sector -- screens are sector-aligned for easier access
+		currentScreenIndex += 1;
 
-		//TODO write screen header
+		gconf.screenSectors[currentScreenIndex] = currentSector;
+		ext_flash_erase_4kB(currentSector);
+
+		memset(sectorBuffer, 0, SECTOR_SIZE);
+		sectorBufferIndex = 0;
+
+		memcpy(sectorBuffer+sectorBufferIndex, (uint8_t *) &screenVar, sizeof(screenVar));
+		sectorBufferIndex += sizeof(screenVar);
 
 		while(currentScreenObjectsLeft > 0){
 			struct object currentObject;
-			UART_READ_LINE();
+			UART_READ_STRING();
 			currentObject.objectType = parseTypeFromString(msg);
 			if(currentObject.objectType == none){
-				printf("[cl] Object type %s not recognised. \n\r", msg);
+				printf("[cl] Object type %s not recognized. \n\r", msg);
 				return 4;
 			}
-			UART_READ_LINE();
+			UART_READ_STRING();
 			currentObject.objectId = (uint16_t) atoi(msg);
-			UART_READ_LINE();
+			UART_READ_STRING();
 			currentObject.xstart = (uint16_t) atoi(msg);
-			UART_READ_LINE();
+			UART_READ_STRING();
 			currentObject.ystart = (uint16_t) atoi(msg);
-			UART_READ_LINE();
+			UART_READ_STRING();
 			currentObject.xend = (uint16_t) atoi(msg);
-			UART_READ_LINE();
+			UART_READ_STRING();
 			currentObject.yend = (uint16_t) atoi(msg);
-			UART_READ_LINE();
+			UART_READ_STRING();
 			currentObject.dataLen = (uint16_t) atoi(msg);
 
+			if(currentObject.dataLen > MAX_DATA_SIZE){
+				printf("[cl] Object (id=%d) data too large. %d\n\r", currentObject.objectId);
+				return 5;
+			}
+
+			//try to append object header to buffer
+			int spaceLeft = SECTOR_SIZE - sectorBufferIndex;
+
+			if(spaceLeft >= sizeof(currentObject)){
+				memcpy(sectorBuffer+sectorBufferIndex, (uint8_t *) &currentObject, sizeof(currentObject));
+				sectorBufferIndex += sizeof(currentObject);
+			}
+			else{
+				//add what fits and begin new sector
+				memcpy(sectorBuffer+sectorBufferIndex, (uint8_t *) &currentObject, spaceLeft);
+				ext_flash_write(currentSector, sectorBuffer, SECTOR_SIZE);
+
+				currentSector += 1;
+				if(currentSector > MAX_SECTOR){
+					printf("[cl] External memory size exceeded trying to save header of object id %d\n\r", currentObject.objectId);
+					return 6;
+				}
+				ext_flash_erase_4kB(currentSector);
+				memset(sectorBuffer, 0, SECTOR_SIZE);
+				sectorBufferIndex = 0;
+				memcpy(sectorBuffer+sectorBufferIndex, ((uint8_t *) &currentObject)+spaceLeft, (sizeof(currentObject) - spaceLeft));
+				sectorBufferIndex += (sizeof(currentObject) - spaceLeft);
+			}
+
+			//object header appended to buffer. Now move on to the hex data...
+
+			uint16_t objectDataBytesLeft = currentObject.dataLen;
+			int dataBufferIndex = 0;
+
+			while(objectDataBytesLeft > 0){
+				do{count = read_usart_message(msg, &huart1, 2, NEWLINE);} while (count==0);
+				if(count!=2){
+					printf("[cl] Unexpected newline in hex data of object with id %d \n\r", currentObject.objectId);
+					return 7;
+				}
+				msg[2] = 0;
+				//two bytes representing hex string read.
+				uint8_t deHexedByte = (uint8_t) strtol(msg, NULL, 16);
+				dataBuffer[dataBufferIndex] = deHexedByte;
+				dataBufferIndex++;
+			}
+
+			//dataBuffer now contains data of object, to be written to external flash.
+
+			//transfer data to sectorBuffer so it can be written out:
+
+			objectDataBytesLeft = currentObject.dataLen;
+			dataBufferIndex = 0;
+
+			while(objectDataBytesLeft > 0){
+				spaceLeft = SECTOR_SIZE - sectorBufferIndex;
+				if(spaceLeft >= objectDataBytesLeft){
+					//data fits, just copy
+					memcpy(sectorBuffer+sectorBufferIndex, dataBuffer + dataBufferIndex, objectDataBytesLeft);
+					sectorBufferIndex += objectDataBytesLeft;
+					objectDataBytesLeft = 0;
+				}
+				else{
+					//data does not fit, copy what fits, write sector, start new sector
+					memcpy(sectorBuffer+sectorBufferIndex, dataBuffer + dataBufferIndex, spaceLeft);
+					dataBufferIndex += spaceLeft;
+					objectDataBytesLeft -= spaceLeft;
+					ext_flash_write(currentSector, sectorBuffer, SECTOR_SIZE);
+					currentSector += 1;
+					if(currentSector > MAX_SECTOR){
+						printf("[cl] External memory size exceeded while trying to save data of object id %d\n\r", currentObject.objectId);
+						return 8;
+					}
+					ext_flash_erase_4kB(currentSector);
+					memset(sectorBuffer, 0, SECTOR_SIZE);
+					sectorBufferIndex = 0;
+				}
+			}
+
+			//loop above finished, meaning that all data of current object is either in external flash or in sectorbuffer
+
+			//proceed to next object.
 		}
 
+		//all objects of current screen received
 
-
-
+		//save the last WIP sector to flash
+		ext_flash_write(currentSector, sectorBuffer, SECTOR_SIZE);
+		//proceed to next screen
 	}
 
+	//all screens have been written.
+	//Now save generic config, since sector address array has been completed:
 
+
+	sectorBufferIndex = 0;
+	memcpy(sectorBuffer+sectorBufferIndex, (uint8_t *) &gconf, sizeof(gconf));
+	ext_flash_write(GENERAL_CONFIG_SECTOR, sectorBuffer, SECTOR_SIZE);
+
+	printf("[cl] Config from UART finished. Last sector written to: %d \n\r", currentSector);
 
 	return 0;
 

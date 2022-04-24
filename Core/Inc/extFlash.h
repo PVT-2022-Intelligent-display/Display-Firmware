@@ -12,6 +12,8 @@
 #define PICTURE_START	4096
 #define SECTOR_SIZE		4096
 
+#define MAX_SECTOR 		2047
+
 
 unsigned int ext_flash_readid();
 unsigned char ext_flash_read_CR2V();
