@@ -21,7 +21,9 @@
 
 #define PRINT_OBJECT_HEADER(o) printf("[Type %2d; id %3d, beg<%3d:%3d>, end<%3d:%3d>, dLen %4d]\n\r", o.objectType, o.objectId, o.xstart, o.ystart, o.xend, o.yend, o.dataLen)
 
-objectType_t parseTypeFromString(char *str);
+void objectTypeToString(objectType_t type, char *str);
+
+objectType_t stringToObjectType(char *str);
 
 /*
  * Attempts to read configuration data from UART and save them to external flash.
@@ -117,7 +119,7 @@ int configFromUart(){
 			currentScreenObjectsLeft--;
 			struct object currentObject;
 			UART_READ_STRING();
-			currentObject.objectType = parseTypeFromString(msg);
+			currentObject.objectType = stringToObjectType(msg);
 			if(currentObject.objectType == none){
 				printf("[cl] Object type %s not recognized. \n\r", msg);
 				return 4;
@@ -185,6 +187,7 @@ int configFromUart(){
 				dataBufferIndex++;
 				objectDataBytesLeft--;
 			}
+			read_usart_message(msg, &huart1, 2, NEWLINE); //to remove newline character from uart input buffer
 
 			//dataBuffer now contains data of object, to be written to external flash.
 
@@ -225,8 +228,7 @@ int configFromUart(){
 
 		//all objects of current screen received
 
-		//save the last WIP sector to flash
-		//ext_flash_write(currentSector, sectorBuffer, SECTOR_SIZE);
+		ext_flash_write_multipage(currentSector*SECTOR_SIZE, sectorBuffer, sectorBufferIndex);
 		//proceed to next screen
 	}
 
@@ -266,22 +268,126 @@ void readGeneralConfig(struct generalConfig *destination){
 	printf("\n\r");*/
 }
 
+/*
+ *	Reads screen from external flash, starting at sector number @screenSector. Its header is saved to *screenHeader.
+ *
+ *	Caller needs to provide @objectArray and @dataPointerArray, both at least @maxObjects long.
+ *	Caller also needs to provide @dataArray, which will be used to store additional data of objects, and needs to be at least @maxData long.
+ *
+ *	Function will attempt to read first @maxObjects objects from stored screen. It will populate @objectArray with headers of individual objects and @dataPointerArray
+ *	with pointers to data of individual objects (all pointers in @dataPointerArray will point into @dataArray).
+ *
+ *	@returns: number of objects read. If maxData and maxObjects are sufficient, this will be the same as @screenHeader.objectCount. If @maxObjects limit was reached,
+ *	then return value will be equal to @maxObjects. If @maxData limit was reached, then return value will be lower than @maxObjects.
+ *
+ */
+int openScreen(uint16_t screenSector, struct screen *screenHeader, struct object *objectArray, uint8_t *dataArray, uint8_t **dataPointerArray, uint16_t maxData, uint16_t maxObjects){
+	uint32_t flashAddr = screenSector*SECTOR_SIZE;
+	uint8_t screenHeaderBuffer[sizeof(struct screen)];
+	ext_flash_read(flashAddr, screenHeaderBuffer, sizeof(struct screen));
+	flashAddr += sizeof(struct screen);
+	*screenHeader = *((struct screen *) screenHeaderBuffer);
+
+	uint16_t objectsToRead = (*screenHeader).objectCount;
+	uint16_t objectIndex = 0;
+	uint16_t dataIndex = 0;
+	if(objectsToRead > maxObjects){
+		printf("[cl] Limiting objects to be read from screen to maxObjects! (down to %d from %d)", maxObjects, objectsToRead);
+		objectsToRead = maxObjects;
+	}
+
+	uint8_t objectHeaderBuffer[sizeof(struct object)];
+	while(objectIndex < objectsToRead){
+		ext_flash_read(flashAddr, objectHeaderBuffer, sizeof(struct object));
+		flashAddr += sizeof(struct object);
+		*(objectArray + objectIndex) = *((struct object *) objectHeaderBuffer);
+		uint16_t currentObjectDataLen = (objectArray + objectIndex)->dataLen;
+		if(currentObjectDataLen > 0){
+			if(dataIndex + currentObjectDataLen > maxData){
+				printf("[cl] Ran out of data buffer when trying to add object #%d \n\r", objectIndex);
+				return(objectIndex);
+			}
+			//object data fits in buffer
+			ext_flash_read(flashAddr, (dataArray + dataIndex), currentObjectDataLen);
+			*(dataPointerArray + objectIndex) = (dataArray + dataIndex);
+			flashAddr += currentObjectDataLen;
+			dataIndex += currentObjectDataLen;
+			}
+		else{
+			*(dataPointerArray + objectIndex) = NULL;
+		}
+
+		objectIndex++;
+	}
+
+	return objectIndex;
+
+}
+
+/*
+ * debug function to check what is actually stored in flash
+ */
+void printAllScreens(struct generalConfig gconf){
+	uint8_t screenIndex = 0;
+	printf("[PAS] Supplied gconf says there are %d screens.\n\r", gconf.totalScreens);
+	uint16_t maxObjects = 128;
+	uint16_t maxData = SECTOR_SIZE*4;
+
+	struct screen screenHeader;
+	struct object objArr[maxObjects];
+	uint8_t dataArr[maxData];
+	uint8_t *pointerArray[maxObjects];
+
+	while(screenIndex < gconf.totalScreens){
+		printf("[PAS] Opening screen #%d stored @%d \n\r", screenIndex, gconf.screenSectors[screenIndex]);
+		int objectsRead = openScreen(gconf.screenSectors[screenIndex], &screenHeader, objArr, dataArr, pointerArray, maxData, maxObjects);
+		printf("[PAS] [%d / %d] objects have been read.\n\r", objectsRead, screenHeader.objectCount);
+		printf("[PAS] Object report:\n\r");
+		uint16_t objectIndex = 0;
+		while(objectIndex < objectsRead){
+			struct object thisObject = *(objArr + objectIndex);
+			char typeStr[30];
+			objectTypeToString(thisObject.objectType, typeStr);
+			printf("[PAS] %s id=%d from (%d, %d) to (%d,%d), hex data (%db) =[", typeStr, thisObject.objectId, thisObject.xstart, thisObject.ystart, thisObject.xend, thisObject.yend, thisObject.dataLen);
+			int dataIndex = 0;
+			while(dataIndex < thisObject.dataLen){
+				printf("%02x", *(pointerArray[objectIndex] + dataIndex));
+				dataIndex++;
+			}
+			printf("]\n\r");
+			objectIndex++;
+		}
+		printf("[PAS] End of screen #%d \n\r", screenIndex);
+		screenIndex++;
+	}
+
+	printf("[PAS] Finished. \n\n\n\r");
+}
 
 
+const char *typeNames[] 	= 		{"rectangle", "button", "label"};
+const objectType_t types[] 	= 		{rectangle, button, label};
+const int typeCount = 3;
 
-objectType_t parseTypeFromString(char *str){
-	const char *typeNames[] 	= 		{"rectangle", "button", "label"};
-	const objectType_t types[] 	= 		{rectangle, button, label};
-
-	int typeCount = 3;
+// Make sure that str is long enough for longest member of typeNames!
+void objectTypeToString(objectType_t type, char *str){
 	int i;
+	for(i=0; i<typeCount; i++){
+		if(type == types[i]){
+			strcpy(str, typeNames[i]);
+			return;
+		}
+	}
 
+}
+
+objectType_t stringToObjectType(char *str){
+	int i;
 	for(i=0; i<typeCount; i++){
 		if(strcmp(typeNames[i], str) == 0){
 			return types[i];
 		}
 	}
-
 	return none;
 }
 

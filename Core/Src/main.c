@@ -149,18 +149,7 @@ int main(void)
 
 	readGeneralConfig(&gConf);
 
-
-	printf("General config says there %d screens. \n\r", gConf.totalScreens);
-
-	int i;
-	for(i = 0; i<gConf.totalScreens;i++){
-		printf("> Screen %d saved at sector %d \n\r", i, gConf.screenSectors[i]);
-	}
-
-
-
-
-
+	printAllScreens(gConf);
 
 
 	int secSleep = 10;
