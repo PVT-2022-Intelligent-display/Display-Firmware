@@ -1,5 +1,5 @@
 
-#Configuration protocol:
+# Configuration protocol:
 
 (all words shown here in "quotes" are sent without quotes)
 
@@ -23,18 +23,18 @@ dataLen //number of hexadecimal bytes of additional data, see below. This value 
 
 After those 6 numbers follow additional object data in hexadecimal format. The kind and ammount of theese data bytes is object-type dependant. This is where strings, colors etc. are provided. The data is send as hexadecimal characters (without the 0x prefix), and the last character is followed by newline. Make sure that you send the same ammount of bytes here as you specified in dataLen.
 
-#Meanings of additional dataBytes
+# Meanings of additional dataBytes
 
 currently implemented:
 
-##Rectangle
+## Rectangle
 You should send 2 bytes of data, forming a single uint16_t number corresponding to the color of the rectangle. For color inspiration see /inc/LCD_driver.h
 
-##Bitmap
+## Bitmap
 You should send 2N bytes of data, where each 2 bytes form a uint16_t number corresponding to color of individual pixel, starting from upper left corner and going in rows.
 Since dataLen is limited to 8192 bytes, bitmaps bigger than 64x64 pixels have to be split into multiple objects.
 
-#Communication example
+# Communication example
 
 Communication example configuring 2 screens, where first screen contains a red rectangle and a 2x2 bitmap and second screen contains a black square.
 
