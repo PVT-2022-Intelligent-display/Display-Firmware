@@ -15,10 +15,15 @@ After the identifier line, 6 decimal numbers are sent in plaintext, each followe
 
 The numbers are, in order:
 id //unique identifier of object
+
 xstart //x coordinate of upper left corner of object
+
 ystart //y -||-
+
 xend   //x coordinate of lower right corner of object
+
 yend   //y -||-
+
 dataLen //number of hexadecimal bytes of additional data, see below. This value cannot go above 8192.
 
 After those 6 numbers follow additional object data in hexadecimal format. The kind and ammount of theese data bytes is object-type dependant. This is where strings, colors etc. are provided. The data is send as hexadecimal characters (without the 0x prefix), and the last character is followed by newline. Make sure that you send the same ammount of bytes here as you specified in dataLen.
