@@ -365,8 +365,8 @@ void printAllScreens(struct generalConfig gconf){
 }
 
 
-const char *typeNames[] 	= 		{"rectangle", "button", "label"};
-const objectType_t types[] 	= 		{rectangle, button, label};
+const char *typeNames[] 	= 		{"rectangle", "button", "label", "bitmap"};
+const objectType_t types[] 	= 		{rectangle, button, label, bitmap};
 const int typeCount = 3;
 
 // Make sure that str is long enough for longest member of typeNames!

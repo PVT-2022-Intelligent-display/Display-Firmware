@@ -123,7 +123,6 @@ int main(void)
 
   //enable uart interrupt
   Init_LCD();
-  static int blOn = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -150,6 +149,24 @@ int main(void)
 	readGeneralConfig(&gConf);
 
 	printAllScreens(gConf);
+
+	//visualization test
+	uint16_t maxObjects = 128;
+	uint16_t maxData = SECTOR_SIZE*4;
+
+	struct screen screenHeader;
+	struct object objArr[maxObjects];
+	uint8_t dataArr[maxData];
+	uint8_t *pointerArr[maxObjects];
+
+	int screenToDraw = 0;
+
+	int objectsRead = openScreen(gConf.screenSectors[screenToDraw], &screenHeader, objArr, dataArr, pointerArr, maxData, maxObjects);
+
+	int i;
+	for(i = 0; i < objectsRead; i++){
+		drawObjectToLcd(objArr[i], pointerArr[i]);
+	}
 
 
 	int secSleep = 10;

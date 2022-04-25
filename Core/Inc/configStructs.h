@@ -31,7 +31,8 @@ typedef enum{
 	none,			//invalid value
 	rectangle,		//monocolored rectangle
 	button,			//button which is reported when pressed
-	label			//text label
+	label,			//text label
+	bitmap
 } objectType_t;
 
 struct object{
