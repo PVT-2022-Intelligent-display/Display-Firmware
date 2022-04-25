@@ -105,7 +105,7 @@ int configFromUart(){
 		currentScreenIndex += 1;
 
 		gconf.screenSectors[currentScreenIndex] = currentSector;
-		ext_flash_erase_4kB(currentSector);
+		ext_flash_erase_4kB(currentSector*SECTOR_SIZE);
 
 		memset(sectorBuffer, 0, SECTOR_SIZE);
 		sectorBufferIndex = 0;
@@ -152,14 +152,14 @@ int configFromUart(){
 			else{
 				//add what fits and begin new sector
 				memcpy(sectorBuffer+sectorBufferIndex, (uint8_t *) &currentObject, spaceLeft);
-				ext_flash_write(currentSector, sectorBuffer, SECTOR_SIZE);
+				ext_flash_write_multipage(currentSector*SECTOR_SIZE, sectorBuffer, SECTOR_SIZE);
 
 				currentSector += 1;
 				if(currentSector > MAX_SECTOR){
 					printf("[cl] External memory size exceeded trying to save header of object id %d\n\r", currentObject.objectId);
 					return 6;
 				}
-				ext_flash_erase_4kB(currentSector);
+				ext_flash_erase_4kB(currentSector*SECTOR_SIZE);
 				memset(sectorBuffer, 0, SECTOR_SIZE);
 				sectorBufferIndex = 0;
 				memcpy(sectorBuffer+sectorBufferIndex, ((uint8_t *) &currentObject)+spaceLeft, (sizeof(currentObject) - spaceLeft));
@@ -206,13 +206,13 @@ int configFromUart(){
 					memcpy(sectorBuffer+sectorBufferIndex, dataBuffer + dataBufferIndex, spaceLeft);
 					dataBufferIndex += spaceLeft;
 					objectDataBytesLeft -= spaceLeft;
-					ext_flash_write(currentSector, sectorBuffer, SECTOR_SIZE);
+					ext_flash_write_multipage(currentSector*SECTOR_SIZE, sectorBuffer, SECTOR_SIZE);
 					currentSector += 1;
 					if(currentSector > MAX_SECTOR){
 						printf("[cl] External memory size exceeded while trying to save data of object id %d\n\r", currentObject.objectId);
 						return 8;
 					}
-					ext_flash_erase_4kB(currentSector);
+					ext_flash_erase_4kB(currentSector*SECTOR_SIZE);
 					memset(sectorBuffer, 0, SECTOR_SIZE);
 					sectorBufferIndex = 0;
 				}
@@ -226,7 +226,7 @@ int configFromUart(){
 		//all objects of current screen received
 
 		//save the last WIP sector to flash
-		ext_flash_write(currentSector, sectorBuffer, SECTOR_SIZE);
+		//ext_flash_write(currentSector, sectorBuffer, SECTOR_SIZE);
 		//proceed to next screen
 	}
 
@@ -236,15 +236,16 @@ int configFromUart(){
 	printf("Gconf screens %d \n\r", gconf.totalScreens);
 
 	sectorBufferIndex = 0;
-	memcpy(sectorBuffer+sectorBufferIndex, (uint8_t *) &gconf, sizeof(gconf));
+	memcpy(sectorBuffer+sectorBufferIndex, (uint8_t *) &gconf, 100);//sizeof(gconf));
 
+	printf("J ");
 	int j;
 	for(j=0; j<sizeof(gconf); j++){
 		printf("%x ", sectorBuffer[j]);
 	}
 
-	ext_flash_erase_4kB(52);
-	ext_flash_write(52, sectorBuffer, sizeof(gconf));
+	ext_flash_erase_4kB(GENERAL_CONFIG_SECTOR*SECTOR_SIZE);
+	ext_flash_write_multipage(GENERAL_CONFIG_SECTOR*SECTOR_SIZE, sectorBuffer, sizeof(gconf));
 	printf("[cl] Config from UART finished. Furthest sector written to: %d \n\r", currentSector);
 
 	return 0;
@@ -256,13 +257,13 @@ int configFromUart(){
  */
 void readGeneralConfig(struct generalConfig *destination){
 	uint8_t buffer[sizeof(struct generalConfig)];
-	ext_flash_read(52, buffer, sizeof(struct generalConfig));
-	int i;
+	ext_flash_read(GENERAL_CONFIG_SECTOR*SECTOR_SIZE, buffer, sizeof(struct generalConfig));
+	*destination = *((struct generalConfig *) buffer);
+	/*int i;
 	for(i = 0; i<sizeof(struct generalConfig); i++){
 		printf("%x,", buffer[i]);
 	}
-	printf("\n\r");
-	*destination = *((struct generalConfig *) buffer);
+	printf("\n\r");*/
 }
 
 

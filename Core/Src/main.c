@@ -130,16 +130,17 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   printf("Entering main loop\n\r");
 
+
   int loopNumber = 0;
 
   struct generalConfig gConf;
 
+
+  printf("sog: %d %d \n\r", sizeof(struct generalConfig), sizeof(gConf));
+
   while (1)
   {
-	int secSleep = 2;
-	int msecSleep = 500;
-	printf("Sleeping %d.%d secs.  LN %d\r\n", secSleep, msecSleep, loopNumber++);
-	HAL_Delay(1000*secSleep + msecSleep);
+
 
 	//flashDemoLoop();
 	//flashDemoPrintLast();
@@ -148,12 +149,24 @@ int main(void)
 
 	readGeneralConfig(&gConf);
 
+
 	printf("General config says there %d screens. \n\r", gConf.totalScreens);
 
 	int i;
 	for(i = 0; i<gConf.totalScreens;i++){
 		printf("> Screen %d saved at sector %d \n\r", i, gConf.screenSectors[i]);
 	}
+
+
+
+
+
+
+
+	int secSleep = 10;
+	int msecSleep = 500;
+	printf("Sleeping %d.%d secs.  LN %d\r\n", secSleep, msecSleep, loopNumber++);
+	HAL_Delay(1000*secSleep + msecSleep);
 
 
     /* USER CODE END WHILE */
