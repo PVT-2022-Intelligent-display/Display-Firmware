@@ -24,12 +24,14 @@
 /* USER CODE BEGIN Includes */
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_gpio.h>
+#include "stm32f4xx_hal_i2c.h"
 #include <stdio.h>
 #include "uart.h"
 #include "uartDemo.h"
 #include "extFlash.h"
 #include "extFlashDemo.h"
 #include "LCD_driver.h"
+#include "TOUCH_driver.h"
 
 /* USER CODE END Includes */
 
@@ -48,7 +50,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c2;
 
 SPI_HandleTypeDef hspi1;
 
@@ -72,6 +75,7 @@ static void MX_I2C1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_I2C2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -122,6 +126,8 @@ int main(void)
   //enable uart interrupt
   uint16_t count = 0;
   Init_LCD();
+  touch_reset();
+  Init_TOUCH(hi2c1);
   while(count<=200)
   {
 	  count++;
@@ -130,6 +136,7 @@ int main(void)
   }
 
   static int blOn = 0;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -146,7 +153,7 @@ int main(void)
 	int msecSleep = 500;
 	printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
 	HAL_Delay(1000*secSleep + msecSleep);
-
+	touch_periodic_process();
 	static int flashDone = 0;
 	if(!flashDone){
 		flashDone = flashDemoLoop();
@@ -154,6 +161,7 @@ int main(void)
 	}
 
 	uartDemoLoop();
+	//touch_periodic_process();
 
 
     /* USER CODE END WHILE */
@@ -162,6 +170,7 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
+
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -236,7 +245,7 @@ static void MX_I2C1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN I2C1_Init 2 */
-
+  __HAL_I2C_ENABLE(&hi2c1);
   /* USER CODE END I2C1_Init 2 */
 
 }
@@ -422,8 +431,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|LCD_RES_Pin, GPIO_PIN_RESET);
@@ -455,7 +464,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PB4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/

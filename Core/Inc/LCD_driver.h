@@ -219,59 +219,22 @@
 #define LCD_3GAMMA_EN           0xF2   /* 3 Gamma enable register */
 #define LCD_PRC                 0xF7   /* Pump ratio control register */
 
-//</editor-fold>
-
-//<editor-fold desc="Orientation">
-
 #define ORIENTATION_PORTRAIT 0x48
 #define ORIENTATION_LANDSCAPE 0x28
 #define ORIENTATION_PORTRAIT_MIRROR 0x88
 #define ORIENTATION_LANDSCAPE_MIRROR 0xE8
 
-//</editor-fold>
-
-//<editor-fold desc="Dimensions">
 #define LCD_PIXEL_WIDTH       480
 #define LCD_PIXEL_HEIGHT      320
 #define LCD_PIXEL_COUNT    LCD_PIXEL_WIDTH * LCD_PIXEL_HEIGHT
-//</editor-fold>
-
-void iopins_ini();
-void encoder_ini(void);
-
-void buzzer_on(void);
-void buzzer_off(void);
-void make_beep(void);
-
-void rs485_trasmit_on(void);
-void rs485_trasmit_off(void);
-
-
-void get_encoder();
-
-void ini_lcd_pwm(void);
-void pwm_backlight_set(unsigned int pwm);
-
-void interrupt_initialize_priorities();
-
-void LCD_WritePixel(uint16_t x, uint16_t y, uint16_t color);
-
-typedef struct
-{
-	unsigned char value;
-	unsigned char previous_value;
-
-	unsigned char status;
-	unsigned char direction;
-
-} encoder_t;
-
-extern encoder_t encoder;
 
 extern unsigned long rtc;
 
-void delay_ms(__IO uint32_t nCount1);
-void delay_us(__IO uint32_t nCount1);
+void LCD_backlight_set(uint16_t pwm);
+void Init_LCD();
+void LCD_WritePixel(uint16_t x, uint16_t y, uint16_t color);
+void LCD_set_coordinates(uint16_t x1,uint16_t y1, uint16_t x2, uint16_t y2);
+void LCD_fillRect(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color);
 
 #endif /* LCD_DRIVER */
 

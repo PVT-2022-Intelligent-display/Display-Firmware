@@ -277,9 +277,9 @@
      If MspInit or MspDeInit are not null, the HAL_I2C_Init()/ HAL_I2C_DeInit()
      keep and use the user MspInit/MspDeInit callbacks (registered beforehand) whatever the state.
     [..]
-     Callbacks can be registered/unregistered in HAL_I2C_STATE_READY state only.
+     Callbacks can be registered/unregistered in HAL_I2C_STATEY state only.
      Exception done MspInit/MspDeInit functions that can be registered/unregistered
-     in HAL_I2C_STATE_READY or HAL_I2C_STATE_RESET state,
+     in HAL_I2C_STATEY or HAL_I2C_STATE_RESET state,
      thus registered (user) MspInit/DeInit callbacks can be used during the Init/DeInit.
      Then, the user first registers the MspInit/MspDeInit user callbacks
      using HAL_I2C_RegisterCallback() before calling HAL_I2C_DeInit()
@@ -2799,7 +2799,7 @@ HAL_StatusTypeDef HAL_I2C_Mem_Read(I2C_HandleTypeDef *hi2c, uint16_t DevAddress,
           return HAL_ERROR;
         }
 
-        /* Read data from DR */
+        /*  data from DR */
         *hi2c->pBuffPtr = (uint8_t)hi2c->Instance->DR;
 
         /* Increment Buffer pointer */
@@ -2811,7 +2811,7 @@ HAL_StatusTypeDef HAL_I2C_Mem_Read(I2C_HandleTypeDef *hi2c, uint16_t DevAddress,
 
         if (__HAL_I2C_GET_FLAG(hi2c, I2C_FLAG_BTF) == SET)
         {
-          /* Read data from DR */
+          /*  data from DR */
           *hi2c->pBuffPtr = (uint8_t)hi2c->Instance->DR;
 
           /* Increment Buffer pointer */
