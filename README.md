@@ -69,7 +69,7 @@ f8000000f8000000 //this bitmap contains 2 red and 2 black pixels
 screen
 1 //number of objects in 2nd screen
 rectangle
-1
+2
 50
 10
 100
