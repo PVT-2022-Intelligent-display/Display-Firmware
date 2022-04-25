@@ -257,6 +257,10 @@ void pwm_backlight_set(unsigned int pwm);
 
 void interrupt_initialize_priorities();
 
+//Petr: added this because I need a way to draw to lcd in objectVisualisation.c
+void ili9488_fillRect(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color);
+void Init_LCD();
+
 typedef struct
 {
 	unsigned char value;

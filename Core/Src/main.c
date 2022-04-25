@@ -31,6 +31,9 @@
 #include "extFlashDemo.h"
 #include "LCD_driver.h"
 
+#include "configLib.h"
+#include "configStructs.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -120,31 +123,56 @@ int main(void)
 
   //enable uart interrupt
   Init_LCD();
-  static int blOn = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   printf("Entering main loop\n\r");
 
-  flashDemoPrintLast();
 
   int loopNumber = 0;
 
+  struct generalConfig gConf;
+
+
+  printf("sog: %d %d \n\r", sizeof(struct generalConfig), sizeof(gConf));
+
   while (1)
   {
-	int secSleep = 1;
-	int msecSleep = 500;
-	printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
-	HAL_Delay(1000*secSleep + msecSleep);
 
-	static int flashDone = 0;
-	if(!flashDone){
-		flashDone = flashDemoLoop();
-		continue;
+
+	//flashDemoLoop();
+	//flashDemoPrintLast();
+
+	configFromUart();
+
+	readGeneralConfig(&gConf);
+
+	printAllScreens(gConf);
+
+	//visualization test
+	uint16_t maxObjects = 128;
+	uint16_t maxData = SECTOR_SIZE*4;
+
+	struct screen screenHeader;
+	struct object objArr[maxObjects];
+	uint8_t dataArr[maxData];
+	uint8_t *pointerArr[maxObjects];
+
+	int screenToDraw = 0;
+
+	int objectsRead = openScreen(gConf.screenSectors[screenToDraw], &screenHeader, objArr, dataArr, pointerArr, maxData, maxObjects);
+
+	int i;
+	for(i = 0; i < objectsRead; i++){
+		drawObjectToLcd(objArr[i], pointerArr[i]);
 	}
 
-	uartDemoLoop();
+
+	int secSleep = 10;
+	int msecSleep = 500;
+	printf("Sleeping %d.%d secs.  LN %d\r\n", secSleep, msecSleep, loopNumber++);
+	HAL_Delay(1000*secSleep + msecSleep);
 
 
     /* USER CODE END WHILE */

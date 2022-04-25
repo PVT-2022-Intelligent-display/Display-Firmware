@@ -9,8 +9,12 @@
 #define INC_EXTFLASH_H_
 
 #define FLASH_SIZE		8388608
+#define PAGE_SIZE		256
+
 #define PICTURE_START	4096
 #define SECTOR_SIZE		4096
+
+#define MAX_SECTOR 		2047
 
 
 unsigned int ext_flash_readid();
@@ -19,9 +23,23 @@ unsigned char ext_flash_read_status_register_1();
 void ext_flash_wren();
 
 
-void ext_flash_write(unsigned int sector_adress, char *buff, unsigned int len);
-void ext_flash_read(unsigned int sector_adress, char *buff, unsigned int len);
-void ext_flash_erase_4kB(unsigned int sector_adress);
+void ext_flash_print_sector(unsigned int address);
+void ext_flash_write_multipage(unsigned int address, unsigned char *buff, unsigned int len);
+
+
+void ext_flash_write(unsigned int address, unsigned char *buff, unsigned int len);
+void ext_flash_read(unsigned int address, unsigned char *buff, unsigned int len);
+void ext_flash_erase_4kB(unsigned int address);
+
+void ext_flash_continuous_read_begin(unsigned int address);
+void ext_flash_continuous_read_read(unsigned char *buff, unsigned int len);
+void ext_flash_continuous_read_skip(unsigned int len);
+void ext_flash_continuous_read_finish();
+
+void ext_flash_continuous_write_begin(unsigned int address);
+void ext_flash_continuous_write_write(unsigned char *buff, unsigned int len);
+void ext_flash_continuous_write_finish();
+
 
 
 
