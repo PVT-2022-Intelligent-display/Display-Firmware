@@ -9,22 +9,12 @@
 #include <LCD_driver.h>
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_gpio.h>
-//#include "iopins.h"
-//#include "usart_routines.h"
-//#include "stdio.h"
-//#include "ext_flash.h"
-//#include "spi_routines.h"
-//#include "rtc_routines.h"
-//#include "i2c_routines.h"
-//#include "ILI9488/fsmc_ili9488.h"
-//#include "ILI9488/config.h"
-//#include "lcd/lcd_touch.h"
-void initialize_ili9488();
-void interrupt_initialize_priorities();
-void iopins_ini();
-void ili9488_fillRect(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color);
-void delay_ms(__IO uint32_t nCount1);
-void ili9488_set_coordinates(uint16_t x1,uint16_t y1, uint16_t x2,uint16_t y2);
+
+static void initialize_ili9488();
+static void interrupt_initialize_priorities();
+static void delay_ms(__IO uint32_t nCount1);
+static void iopins_ini();
+static void ili9488_showArray_wo_coordinates(uint16_t *data, uint32_t count);
 
 void Init_LCD()
 {
@@ -34,14 +24,120 @@ void Init_LCD()
 
 	//*****************************************************************************
 		initialize_ili9488();					// initialize LCD
+		LCD_backlight_set(100);
 }
+void LCD_fillRect(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color)
+{
+	uint32_t count = w * h;
+	LCD_set_coordinates(x1, y1, (uint16_t) (x1 + w - 1), (uint16_t) (y1 + h - 1));
 
-void interrupt_initialize_priorities()
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x002C;
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
+
+	for(unsigned int i=0; i<count; i++)
+	{
+		TFT_REG=color;
+	}
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
+}
+void LCD_set_coordinates(uint16_t x1,uint16_t y1, uint16_t x2, uint16_t y2)
+{
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x002A;
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
+	TFT_REG=x1>>8;
+	TFT_REG=x1&0xFF;
+	TFT_REG=x2>>8;
+	TFT_REG=x2&0xFF;
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
+
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
+	TFT_REG=0x002B;
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
+	TFT_REG=y1>>8;
+	TFT_REG=y1&0xFF;
+	TFT_REG=y2>>8;
+	TFT_REG=y2&0xFF;
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
+}
+void LCD_backlight_set(uint16_t pwm)
+{
+
+	if(pwm>=100)
+	{
+		pwm=100;
+	}else if(pwm <= 0)
+	{
+		pwm = 0;
+	}
+
+	pwm=(unsigned int)((MAX_PWM_PULSE * pwm)/100);
+
+	/* Common settings */
+      TIM_HandleTypeDef htim1;
+	  TIM_MasterConfigTypeDef sMasterConfig = {0};
+	  TIM_OC_InitTypeDef sConfigOC = {0};
+	  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+	  htim1.Instance = TIM1;
+	  htim1.Init.Prescaler = 0;
+	  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+	  htim1.Init.Period = 65535;
+	  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	  htim1.Init.RepetitionCounter = 0;
+	  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	  HAL_TIM_PWM_Stop(&htim1,TIM_CHANNEL_4);
+	  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	  sConfigOC.Pulse = pwm;
+	  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+	  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+	  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+	  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+	  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+	  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+	  sBreakDeadTimeConfig.DeadTime = 0;
+	  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+	  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+	  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+	  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+
+	  HAL_TIM_MspPostInit(&htim1);
+	  HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_4);
+
+
+}
+inline void LCD_WritePixel(uint16_t x, uint16_t y, uint16_t color){
+
+	LCD_set_coordinates(x,y,x,y);
+	ili9488_showArray_wo_coordinates(color,1);
+}
+static void interrupt_initialize_priorities()
 {
 	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4); //4 bits for preemp priority 0 bit for sub priority
 }
-
-void iopins_ini()
+static void iopins_ini()
 {
 
 	 __GPIOC_CLK_ENABLE();
@@ -54,20 +150,13 @@ void iopins_ini()
 	GPIO_InitStruct.Pin = BUZZER;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	 HAL_GPIO_Init(BUZZER_PORT, &GPIO_InitStruct);
+	HAL_GPIO_Init(BUZZER_PORT, &GPIO_InitStruct);
 
     RS485DIR_PORT_RCC();
 	GPIO_InitStruct.Pin = RS485DIR;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	 HAL_GPIO_Init(RS485DIR_PORT, &GPIO_InitStruct);
-
-//  (LCD_BACKLIGHT_PORT_RCC();
-//	GPIO_InitStruct.Pin = LCD_BACKLIGHT;
-//	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-//	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-//	 HAL_GPIO_Init(LCD_BACKLIGHT_PORT, &GPIO_InitStruct);
-//	HAL_GPIO_WritePin(LCD_BACKLIGHT_PORT,LCD_BACKLIGHT);
+	HAL_GPIO_Init(RS485DIR_PORT, &GPIO_InitStruct);
 
     LCD_CS_PORT_RCC();
 	GPIO_InitStruct.Pin = LCD_CS;
@@ -160,8 +249,7 @@ void iopins_ini()
 
 	HAL_GPIO_WritePin(TOUCH_RESET_PORT,TOUCH_RESET,GPIO_PIN_SET);
 }
-//*****************************************************************************
-void initialize_ili9488()
+static void initialize_ili9488()
 {
 	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
@@ -189,48 +277,24 @@ void initialize_ili9488()
 	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
 
 	delay_ms(100);
-	ili9488_fillRect(0,0,LCD_PIXEL_WIDTH,LCD_PIXEL_HEIGHT,ORANGE);
+	LCD_fillRect(0,0,LCD_PIXEL_WIDTH,LCD_PIXEL_HEIGHT,ORANGE);
 }
-void delay_ms(__IO uint32_t nCount1) {
-	__IO uint32_t nCount=nCount1*23666;
-	while(nCount--) {
-  }
-}
-void ili9488_fillRect(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color)
-{
-	uint32_t count = w * h;
-	ili9488_set_coordinates(x1, y1, (uint16_t) (x1 + w - 1), (uint16_t) (y1 + h - 1));
 
-	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
+static void ili9488_showArray_wo_coordinates(uint16_t *data, uint32_t count)
+{
+	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
 	TFT_REG=0x002C;
 	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
 
 	for(unsigned int i=0; i<count; i++)
 	{
-		TFT_REG=color;
+		TFT_REG=data[i];
 	}
 	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
 }
-void ili9488_set_coordinates(uint16_t x1,uint16_t y1, uint16_t x2, uint16_t y2)
-{
-	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
-	TFT_REG=0x002A;
-	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
-	TFT_REG=x1>>8;
-	TFT_REG=x1&0xFF;
-	TFT_REG=x2>>8;
-	TFT_REG=x2&0xFF;
-	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
-
-	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_RESET);
-	TFT_REG=0x002B;
-	HAL_GPIO_WritePin(LCD_DCX_PORT, LCD_DCX,GPIO_PIN_SET);
-	TFT_REG=y1>>8;
-	TFT_REG=y1&0xFF;
-	TFT_REG=y2>>8;
-	TFT_REG=y2&0xFF;
-	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS,GPIO_PIN_SET);
+static void delay_ms(__IO uint32_t nCount1) {
+	__IO uint32_t nCount=nCount1*23666;
+	while(nCount--) {
+  }
 }
