@@ -33,6 +33,9 @@
 #include "LCD_driver.h"
 #include "TOUCH_driver.h"
 
+#include "configLib.h"
+#include "configStructs.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -126,6 +129,7 @@ int main(void)
   //enable uart interrupt
   uint16_t count = 0;
   Init_LCD();
+
   touch_reset();
   Init_TOUCH(hi2c1);
   while(count<=200)
@@ -137,18 +141,25 @@ int main(void)
 
   static int blOn = 0;
 
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   printf("Entering main loop\n\r");
 
-  flashDemoPrintLast();
 
   int loopNumber = 0;
 
+  struct generalConfig gConf;
+
+
+  printf("sog: %d %d \n\r", sizeof(struct generalConfig), sizeof(gConf));
+
   while (1)
   {
+
 	int secSleep = 1;
 	int msecSleep = 500;
 	printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
@@ -162,6 +173,7 @@ int main(void)
 
 	uartDemoLoop();
 	//touch_periodic_process();
+
 
 
     /* USER CODE END WHILE */

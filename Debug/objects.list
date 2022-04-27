@@ -1,8 +1,13 @@
 "./Core/Src/LCD_driver.o"
+
 "./Core/Src/TOUCH_driver.o"
+
+"./Core/Src/configLib.o"
+
 "./Core/Src/extFlash.o"
 "./Core/Src/extFlashDemo.o"
 "./Core/Src/main.o"
+"./Core/Src/objectVisualization.o"
 "./Core/Src/spiRoutines.o"
 "./Core/Src/stm32f4xx_hal_msp.o"
 "./Core/Src/stm32f4xx_it.o"
