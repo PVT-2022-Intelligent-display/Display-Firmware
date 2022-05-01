@@ -131,14 +131,7 @@ int main(void)
   Init_LCD();
 
   touch_reset();
-  Init_TOUCH(hi2c1);
-  while(count<=200)
-  {
-	  count++;
-	  LCD_WritePixel(count,0x10,BLUE);
-	  HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_4);
-  }
-
+  touch_init(hi2c1);
   static int blOn = 0;
 
 
@@ -147,39 +140,43 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  printf("Entering main loop\n\r");
+  	  printf("Entering main loop\n\r");
 
 
-  int loopNumber = 0;
+  	  int loopNumber = 0;
 
-  struct generalConfig gConf;
+  	  struct generalConfig gConf;
 
 
-  printf("sog: %d %d \n\r", sizeof(struct generalConfig), sizeof(gConf));
+	printf("sog: %d %d \n\r", sizeof(struct generalConfig), sizeof(gConf));
+	LCD_fillRect(0,0,50,50,WHITE);
+	LCD_fillRect(470,0,50,50,RED);
+	LCD_fillRect(256,154,50,50,RED);
+	LCD_fillRect(100,100,50,50,YELLOW);
+	printf("Register result: %d\n\r",touch_register_element(0,0,0,0,50,50,0,0));
+	printf("Register result: %d\n\r",touch_register_element(0,0,470,0,470+50,50,0,0));
+	printf("Register result: %d\n\r",touch_register_element(0,0,256,154,256+50,154+50,0,0));
+	printf("Register result: %d\n\r",touch_register_element(0,0,100,100,150,150,0,0));
 
-  while (1)
-  {
+	while (1)
+	{
 
-	int secSleep = 1;
-	int msecSleep = 500;
-	printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
-	HAL_Delay(1000*secSleep + msecSleep);
-	touch_periodic_process();
-	static int flashDone = 0;
-	if(!flashDone){
-		flashDone = flashDemoLoop();
-		continue;
+		int secSleep = 1;
+		int msecSleep = 500;
+		//printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
+		//HAL_Delay(1000*secSleep + msecSleep);
+		touch_periodic_process();
+		static int flashDone = 0;
+		//if(!flashDone){
+		//	flashDone = flashDemoLoop();
+		//	continue;
+		//}
+
+		//uartDemoLoop();
+		/* USER CODE END WHILE */
+
+		/* USER CODE BEGIN 3 */
 	}
-
-	uartDemoLoop();
-	//touch_periodic_process();
-
-
-
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
   /* USER CODE END 3 */
 }
 
@@ -208,6 +205,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
+
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();

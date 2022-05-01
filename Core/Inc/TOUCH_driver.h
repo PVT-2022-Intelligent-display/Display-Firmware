@@ -7,37 +7,37 @@
 #define		LCD_PIN_PORT				GPIOB
 #define		LCD_PIN_PORT_RCC			RCC_AHB1Periph_GPIOB
 #define		LCD_PIN						GPIO_Pin_4
-
-#define		MIN_X					0
-#define		MAX_X					1024
-#define		MIN_Y					0
-#define		MAX_Y					1024
-
-#define		X_SCALE					0.46875
-#define		Y_SCALE					0.3125
-
-#define 	MAX_TP_BUTTONS			4
-#define 	SLAVE_ADDRESS_TOUCH		0x90
-#define 	I2C_DELAY				1000
+#define 	MAX_NUM_ELEMENTS			20
+#define 	MAX_NUM_LAYERS				5
+#define 	MAX_NUM_PAGES				5
 
 typedef struct
 {
-	unsigned short x,y;
-	unsigned short x1,y1;
-	unsigned char pressed;
-	unsigned int idle_timer;
-	unsigned char 	key[4][8];
-	unsigned short	coordinates[4][4];
-	unsigned char 	key_pressed[8];
+	uint16_t x,y;
+	uint16_t x1,y1;
+	uint16_t pressed;
+	uint16_t idle_timer;
+	uint8_t  element_type;
+	uint8_t  isAlive;
+
 } touch_t;
 
-
-//void get_touched_button();
-//void clear_touched_button();
-//char validate_touch_coordinates();
-
+struct element_t
+{
+	uint16_t x,y;
+	uint16_t x1,y1;
+	uint8_t  element_type;
+	uint8_t  isAlive;
+	uint32_t *element_pointer;
+};
+void set_page(uint8_t page); // set page of the elements
+void set_layer(uint8_t layer); // set layer of the elemens
+struct element_t get_last_pressed_element();
+uint8_t touch_register_element(uint8_t page,uint8_t layer,uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,uint16_t element_type, uint32_t element_pointer);
+void touch_unregister_element(uint8_t page,uint8_t layer,uint8_t idx);
 void touch_periodic_process();
-void Init_TOUCH(I2C_HandleTypeDef def);
+void touch_init(I2C_HandleTypeDef def);
 void touch_reset();
+
 
 #endif/*TOUCH_DRIVERC_H_*/
