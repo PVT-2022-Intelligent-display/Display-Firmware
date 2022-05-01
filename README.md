@@ -79,7 +79,17 @@ rectangle
 
 ```
 
+# Adding elements to be detected by TOUCH_driver module
 
-
+To add any element to be detected by touch screen, use touch_register_element function. Each ellement can be placed on one of 5 pages, each page has 5 layers and moreover, each layer has 20 ellements (exact limits can be changed in TOUCH_screen module). 
+```C
+uint8_t touch_register_element(uint8_t page,uint8_t layer,uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,uint16_t element_type, uint32_t element_pointer);
+```
+EXAMPLE:
+```C	
+LCD_fillRect(256,154,50,50,RED); // ---> will draw red rectagle in the middle of the sreen
+touch_register_element(0,0,256,154,256+50,154+50,0,0)); // ----> will add coodinates of the red rectangle to be recognized as a ellement 
+```
+Red rectangle which will be placed in the middle of the screen will be recognized by TOUCh driver module as an element on page 0 and layer 0. Index on the layer will be set automatically and will be a function return value. In each itteration of main loop touch_pereodic_process must be called to check while any buttons were pressed. After touch_pereodic_process was called you can call get_last_pressed_element function, which will return structure type of element_t that will contain information about last pressed UI element that was previosly specified in the touch_register_element function
 
 
