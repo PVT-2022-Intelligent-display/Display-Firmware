@@ -178,7 +178,7 @@ int main(void)
 		if(loopNumber % 6000000 == 0){
 			 configResult = configFromUart(); //check if there's incoming data on config uart, if yes, attempt to read configuration
 			 char str[] = "You fight \nlike a dairy\nfarmer!";
-			 drawStringToLcd5x7(100, 100, 5, 0xAA, 0, 0xFF, 3, 5, str);
+			 drawStringToLcd5x7(100, 20, 5, 0xAA, 0, 0xFF, 3, 5, str);
 		}
 
 		//redraw display
@@ -194,7 +194,7 @@ int main(void)
 			}
 			int i;
 			for(i = 0; i<objectsRead; i++){
-				drawObjectToLcd(objArr[i], pointerArr[i]);
+				drawObjectToLcd(objArr[i], pointerArr[i], 0);
 			}
 		}
 

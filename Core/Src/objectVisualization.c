@@ -16,7 +16,11 @@
 #include "LCD_driver.h"
 #include "font.h"
 
-int drawObjectToLcd(struct object o, uint8_t *data){
+void drawCharToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int useBackground, uint16_t bgColor, char c);
+void drawStringToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int useBackground, uint16_t bgColor, int hSpacing, int vSpacing, char *string);
+
+
+int drawObjectToLcd(struct object o, uint8_t *data, int state){
 	char objName[30];
 	objectTypeToString(o.objectType, objName);
 
@@ -30,9 +34,7 @@ int drawObjectToLcd(struct object o, uint8_t *data){
 
 	printf("[OV] Drawing %s id %d \n\r", objName, o.objectId);
 
-	switch(o.objectType){
-	case rectangle:
-		; //empty statement to shut compiler up
+	if(o.objectType == rectangle){
 		uint16_t color = BLACK;
 		if(o.dataLen<2){
 			printf("[OV] Warning: missing color byte in object id %d! Falling back on black. \n\r", o.objectId);
@@ -41,10 +43,8 @@ int drawObjectToLcd(struct object o, uint8_t *data){
 			color = *((uint16_t *) data);
 		}
 		LCD_fillRect(o.xstart, o.ystart, (o.xend - o.xstart), (o.yend - o.ystart), color);
-		break;
-
-	case bitmap:
-		; //empty statement to shut compiler up
+	}
+	else if(o.objectType == bitmap){
 		uint16_t xpos = o.xstart;
 		uint16_t ypos = o.ystart;
 		if(o.dataLen < (o.xend - o.xstart)*(o.yend - o.ystart)){
@@ -66,10 +66,32 @@ int drawObjectToLcd(struct object o, uint8_t *data){
 				}
 			}
 		}
-		break;
+	}
+	else if(o.objectType==label){
+		int expectedChars = o.dataLen - 8;
+		if(expectedChars < 0){
+			printf("[OV] Error: Too few data bytes to draw string id %d. \n\r", o.objectId);
+			return 3;
+		}
+		int dIndex = 0;
+		uint8_t pixelScaling = *((uint8_t *) (data + dIndex++));
+		uint8_t hSpace = *((uint8_t *) (data + dIndex++));
+		uint8_t vSpace = *((uint8_t *) (data + dIndex++));
+		uint8_t useBg = *((uint8_t *) (data + dIndex++));
+		uint16_t textColor = *((uint16_t *) (data + dIndex));
+		dIndex += 2;
+		uint16_t bgColor = *((uint16_t *) (data + dIndex));
+		dIndex += 2;
 
-	default:
-
+		char labelString[expectedChars + 1];
+		int i;
+		for(i = 0; i<expectedChars;i++){
+			labelString[i] = *((uint8_t *) (data + dIndex++));
+		}
+		labelString[expectedChars] = 0;
+		drawStringToLcd5x7(o.xstart, o.ystart, pixelScaling, textColor, useBg, bgColor, hSpace, vSpace, labelString);
+	}
+	else{
 		printf("[OV] Error: drawObjectToLcd() not implemented for object type [%s]. \n\r", objName);
 		return 100;
 	}
@@ -120,7 +142,7 @@ void drawCharToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int us
 	int ascii = (int) c;
 	char *charFont = font5x7 + (5*ascii);
 	int i;
-	printf("Drawing char %c @ [%d, %d] \n\r", c, x, y);
+	//printf("Drawing char %c @ [%d, %d] \n\r", c, x, y);
 
 	//font is stored as columns!
 	int column, row;

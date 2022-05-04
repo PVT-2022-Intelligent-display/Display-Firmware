@@ -1,15 +1,10 @@
 /*
  * font.h
  *
- *  Created on: 4. 5. 2022
- *      Author: Petr
- *
- *      taken from original project font file
+ *  Created on: 4. 5. 2022 Author: Petr taken from original project font file
  */
-
 #ifndef INC_FONT_H_
 #define INC_FONT_H_
-
 
 static const unsigned char font5x7[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00,
