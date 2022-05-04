@@ -35,9 +35,27 @@ currently implemented:
 ## Rectangle
 You should send 2 bytes of data, forming a single uint16_t number corresponding to the color of the rectangle. For color inspiration see /inc/LCD_driver.h
 
-## Bitmap
+## Bitmap (outdated, to be replaced)
 You should send 2N bytes of data, where each 2 bytes form a uint16_t number corresponding to color of individual pixel, starting from upper left corner and going in rows.
 Since dataLen is limited to 8192 bytes, bitmaps bigger than 64x64 pixels have to be split into multiple objects.
+
+## Label
+You should send N+8 bytes of data, where n is the number of characters in your label as ascii bytes. The first 8 bytes descripbe the text and their meanings are as follows:
+
+byte 1 - pixel scaling. Defines how many LCD pixels are drawn per pixel of font. Font is 5x7, so when pixelscaling = 5, a single character will take up 25x35 pixels on lcd.
+
+byte 2 - horizontal spacing. How many lcd pixels between chars in x axis.
+
+byte 3 - vertical spacing. How many lcd pixels between chars in y axis (useful when you send newlines in your string)
+
+byte 4 - use background. When 0, the pixels around characters will be left as they are (transparent background). When not 0, they will be filled with backgroundColor
+
+bytes 5,6 - uint16_t color of text
+
+bytes 7,8 - uint16_t color of background. Has no effect when byte 4 = 0 (but still has to be sent).
+
+Label example: To draw "HELLO" in black with transparent background, pixel scaling 3, horizontal and vertical spacing 1 pixel, send following bytes as data: [030101000000000048454c4c4f]
+
 
 # Communication example
 
