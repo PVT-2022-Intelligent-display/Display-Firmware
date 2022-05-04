@@ -35,6 +35,7 @@
 
 #include "configLib.h"
 #include "configStructs.h"
+#include "objectVisualization.h"
 
 /* USER CODE END Includes */
 
@@ -143,12 +144,10 @@ int main(void)
   	  printf("Entering main loop\n\r");
 
 
-  	  int loopNumber = 0;
-
-  	  struct generalConfig gConf;
+  	int loopNumber = 0;
 
 
-	printf("sog: %d %d \n\r", sizeof(struct generalConfig), sizeof(gConf));
+
 	LCD_fillRect(0,0,50,50,WHITE);
 	LCD_fillRect(470,0,50,50,RED);
 	LCD_fillRect(256,154,50,50,RED);
@@ -158,21 +157,54 @@ int main(void)
 	printf("Register result: %d\n\r",touch_register_element(0,0,256,154,256+50,154+50,0,0));
 	printf("Register result: %d\n\r",touch_register_element(0,0,100,100,150,150,0,0));
 
+	int notYetDrawnFlag = 1;
+	struct generalConfig gConf;
+	int currentScreen = 1;
+
+	//arrays for holding object data loaded from flash
+	uint16_t maxObjects = 128;
+	uint16_t maxData = SECTOR_SIZE*4;
+	struct screen screenHeader;
+	struct object objArr[maxObjects];
+	uint8_t dataArr[maxData];
+	uint8_t *pointerArr[maxObjects];
+
+
 	while (1)
 	{
 
-		int secSleep = 1;
-		int msecSleep = 500;
-		//printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
-		//HAL_Delay(1000*secSleep + msecSleep);
+		loopNumber++;
+		int configResult = 1; //1 = no data on uart
+		if(loopNumber % 6000000 == 0){
+			 configResult = configFromUart(); //check if there's incoming data on config uart, if yes, attempt to read configuration
+			 char str[] = "You fight \nlike a dairy\nfarmer!";
+			 drawStringToLcd5x7(100, 100, 5, 0xAA, 0, 0xFF, 3, 5, str);
+		}
+
+		//redraw display
+		if(notYetDrawnFlag || configResult != 1){
+			notYetDrawnFlag = 0;
+			readGeneralConfig(&gConf);
+			printf("Redrawing display. Just FYI:\n\r");
+			printAllScreens(gConf);
+			int objectsRead = 0;
+			currentScreen = 0;
+			if(currentScreen < gConf.totalScreens){
+				objectsRead = openScreen(gConf.screenSectors[currentScreen], &screenHeader, objArr, dataArr, pointerArr, maxData, maxObjects);
+			}
+			int i;
+			for(i = 0; i<objectsRead; i++){
+				drawObjectToLcd(objArr[i], pointerArr[i]);
+			}
+		}
+
+
+
 		touch_periodic_process();
 		static int flashDone = 0;
-		//if(!flashDone){
-		//	flashDone = flashDemoLoop();
-		//	continue;
-		//}
 
-		//uartDemoLoop();
+
+
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
