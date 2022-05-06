@@ -179,6 +179,11 @@ int main(void)
 			 configResult = configFromUart(); //check if there's incoming data on config uart, if yes, attempt to read configuration
 			 char str[] = "You fight \nlike a dairy\nfarmer!";
 			 drawStringToLcd5x7(100, 20, 5, 0xAA, 0, 0xFF, 3, 5, str);
+
+			 //debug
+			 struct bitmapList bl;
+			 readBitmapList(&bl);
+			 printf("total bitmaps: >> %d \n\r", bl.totalBitmaps);
 		}
 
 		//redraw display

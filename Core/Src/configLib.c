@@ -13,7 +13,7 @@
 #include <string.h>
 #include "extFlash.h"
 #include "configStructs.h"
-
+#include "configLib.h"
 
 #define NEWLINE 13
 #define UART_READ_STRING() do{ count = read_usart_message(msg, &huart1, sizeof(msg), NEWLINE); } while(count==0); \
@@ -25,17 +25,20 @@ void objectTypeToString(objectType_t type, char *str);
 
 objectType_t stringToObjectType(char *str);
 
+int configScreensFromUart();
+int configBitmapFromUart();
+int configMarkBitmapsForDelete();
+
+
 /*
  * Attempts to read configuration data from UART and save them to external flash.
- * Returns: 0 when configuration successful, 1 when no configuration data detected on uart, 2 or greater when configuration failed
+ * Returns: 0 when successful, 1 when no configuration data detected on uart, 2 or greater when configuration failed
  */
 int configFromUart(){
 
 	char msg[128];
 
 	int count = read_usart_message(msg, &huart1, sizeof(msg), NEWLINE);
-
-
 
 	if(count == 0){
 		printf("[cl] No data on uart.\n\r");
@@ -44,15 +47,66 @@ int configFromUart(){
 
 	msg[count-1] = 0; //replace newline delimiter with null-termination
 
-	char expectedFirstMsg[] = "config";
+	char configMsg[] = "config";
+	char bitmapMsg[] = "bitmap";
+	char deleteMsg[] = "delete bitmaps";
+	char sreportMsg[] = "report screens";
+	char breportMsg[] = "report bitmpas";
 
-	if(strcmp(expectedFirstMsg, msg) != 0){
-		printf("[cl] Unexpected first msg. Got %s, wanted %s.\n\r", msg, expectedFirstMsg);
+	if(strcmp(configMsg, msg) == 0){
+		printf("[cl] Okay, proceeding to configure screens.\n\r");
+		return configScreensFromUart();
+	}
+	else if(strcmp(bitmapMsg, msg) == 0){
+		printf("[cl] Okay, proceeding to write bitmap.\n\r");
+		return configBitmapFromUart();
+	}
+	else if(strcmp(deleteMsg, msg) == 0){
+		printf("[cl] Okay, marking all saved bitmaps for deletion.\n\r");
+		return configMarkBitmapsForDelete();
+	}
+	else if(strcmp(sreportMsg, msg) == 0){
+		printf("[cl] Okay, reporting screens.\n\r");
+		struct generalConfig gconf;
+		readGeneralConfig(&gconf);
+		printAllScreens(gconf);
+		return 0;
+	}
+	else if(strcmp(breportMsg, msg) == 0){
+		printf("[cl] Okay, reporting bitmaps.\n\r");
+		printf("NOT IMPLEMENTED");
+		return 0;
+		}
+	else{
+		printf("[cl] Unexpected first msg. Got %s, which is not a recognised command.\n\r", msg);
 		return 1;
 	}
+}
 
+int configBitmapFromUart(){
+	int count;
+	char msg[128];
+
+	printf("[cl] Not yet implemented.\n\r");
+	return 0;
+}
+
+int configMarkBitmapsForDelete(){
+	ext_flash_erase_4kB(BITMAP_LIST_SECTOR*SECTOR_SIZE);
+	struct bitmapList bl;
+	bl.totalBitmaps = 0;
+	uint8_t buff[sizeof(bl)];
+	memcpy(buff, (uint8_t *) &bl, sizeof(bl));
+	ext_flash_write_multipage(BITMAP_LIST_SECTOR*SECTOR_SIZE, buff, sizeof(bl));
+	printf("[cl] Bitmaps marked for delete.\n\r");
+	return 0;
+}
+
+
+int configScreensFromUart(){
+	int count;
+	char msg[128];
 	UART_READ_STRING(); //read general config - number of screens
-
 	int totalScreens = atoi(msg);
 
 	if(totalScreens < 1 || totalScreens >256){
@@ -140,7 +194,7 @@ int configFromUart(){
 			PRINT_OBJECT_HEADER(currentObject);
 
 			if(currentObject.dataLen > MAX_DATA_SIZE){
-				printf("[cl] Object (id=%d) data too large. %d\n\r", currentObject.objectId);
+				printf("[cl] Object (id=%d) data exceeds MAX_DATA_SIZE = %d.\n\r", currentObject.objectId, MAX_DATA_SIZE);
 				return 5;
 			}
 
@@ -157,8 +211,8 @@ int configFromUart(){
 				ext_flash_write_multipage(currentSector*SECTOR_SIZE, sectorBuffer, SECTOR_SIZE);
 
 				currentSector += 1;
-				if(currentSector > MAX_SECTOR){
-					printf("[cl] External memory size exceeded trying to save header of object id %d\n\r", currentObject.objectId);
+				if(currentSector > MAX_SCREEN_SECTOR){
+					printf("[cl] Screen memory size exceeded trying to save header of object id %d\n\r", currentObject.objectId);
 					return 6;
 				}
 				ext_flash_erase_4kB(currentSector*SECTOR_SIZE);
@@ -211,8 +265,8 @@ int configFromUart(){
 					objectDataBytesLeft -= spaceLeft;
 					ext_flash_write_multipage(currentSector*SECTOR_SIZE, sectorBuffer, SECTOR_SIZE);
 					currentSector += 1;
-					if(currentSector > MAX_SECTOR){
-						printf("[cl] External memory size exceeded while trying to save data of object id %d\n\r", currentObject.objectId);
+					if(currentSector > MAX_SCREEN_SECTOR){
+						printf("[cl] Screen memory size exceeded while trying to save data of object id %d\n\r", currentObject.objectId);
 						return 8;
 					}
 					ext_flash_erase_4kB(currentSector*SECTOR_SIZE);
@@ -266,6 +320,15 @@ void readGeneralConfig(struct generalConfig *destination){
 		printf("%x,", buffer[i]);
 	}
 	printf("\n\r");*/
+}
+
+/*
+ * Reads the list of bitmaps struct from external flash into variable pointed at by @destination.
+ */
+void readBitmapList(struct bitmapList *destination){
+	uint8_t buffer[sizeof(struct bitmapList)];
+	ext_flash_read(BITMAP_LIST_SECTOR*SECTOR_SIZE, buffer, sizeof(struct bitmapList));
+	*destination = *((struct bitmapList *) buffer);
 }
 
 /*
@@ -365,8 +428,8 @@ void printAllScreens(struct generalConfig gconf){
 }
 
 
-const char *typeNames[] 	= 		{"rectangle", "button", "label", "bitmap"};
-const objectType_t types[] 	= 		{rectangle, button, label, bitmap};
+const char *typeNames[] 	= 		{"rectangle", "button", "label", "picture"};
+const objectType_t types[] 	= 		{rectangle, button, label, picture};
 const int typeCount = 3;
 
 // Make sure that str is long enough for longest member of typeNames!

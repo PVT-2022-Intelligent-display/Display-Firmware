@@ -14,6 +14,8 @@ int configFromUart();
 
 void readGeneralConfig(struct generalConfig *destination);
 
+void readBitmapList(struct bitmapList *destination);
+
 void objectTypeToString(objectType_t type, char *str);
 
 objectType_t stringToObjectType(char *str);

@@ -11,14 +11,24 @@
 #ifndef INC_CONFIGSTRUCTS_H_
 #define INC_CONFIGSTRUCTS_H_
 
-#define GENERAL_CONFIG_SECTOR 0
-
 #define MAX_SCREENS 256
+#define MAX_BITMAPS 1024
 
 //Struct holding general info about whole configuration
 struct generalConfig{
 	uint8_t totalScreens;
 	uint16_t screenSectors[MAX_SCREENS]; //sectors of external flash at which individual screens begin. 0 when screen not configured.
+};
+
+struct bitmapList{
+	uint16_t totalBitmaps;
+	uint16_t bitmapSectors[MAX_BITMAPS];
+};
+
+struct bitmap{
+	uint16_t bitmapNumber;
+	uint16_t xsize;
+	uint16_t ysize;
 };
 
 struct screen{
@@ -32,7 +42,7 @@ typedef enum{
 	rectangle,		//monocolored rectangle
 	button,			//button which is reported when pressed
 	label,			//text label
-	bitmap
+	picture
 } objectType_t;
 
 struct object{
