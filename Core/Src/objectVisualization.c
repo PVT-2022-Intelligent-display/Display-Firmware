@@ -44,7 +44,7 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 		}
 		LCD_fillRect(o.xstart, o.ystart, (o.xend - o.xstart), (o.yend - o.ystart), color);
 	}
-	else if(o.objectType == bitmap){
+	else if(o.objectType == picture){ //TODO fix data expectations
 		uint16_t xpos = o.xstart;
 		uint16_t ypos = o.ystart;
 		if(o.dataLen < (o.xend - o.xstart)*(o.yend - o.ystart)){

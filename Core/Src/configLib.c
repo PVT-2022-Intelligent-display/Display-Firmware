@@ -31,7 +31,7 @@ int configMarkBitmapsForDelete();
 
 
 /*
- * Attempts to read configuration data from UART and save them to external flash.
+ * Attempts to read configuration / debug data from UART and save them to external flash.
  * Returns: 0 when successful, 1 when no configuration data detected on uart, 2 or greater when configuration failed
  */
 int configFromUart(){
@@ -86,8 +86,78 @@ int configFromUart(){
 int configBitmapFromUart(){
 	int count;
 	char msg[128];
+	struct bitmapList blist;
+	readBitmapList(&blist);
+	int currentSector = blist.lastUsedSector + 1;
+	if(currentSector > MAX_SECTOR){
+		printf("[cl] Error trying to write bitmap to memory: No more free sectors. Last used: %d \n\r", blist.lastUsedSector);
+		return 1000;
+	}
+	blist.bitmapSectors[blist.totalBitmaps-1] = currentSector;
+ 	blist.totalBitmaps++;
 
-	printf("[cl] Not yet implemented.\n\r");
+ 	struct bitmap bm;
+
+ 	UART_READ_STRING();
+ 	bm.xsize = atoi(msg);
+ 	UART_READ_STRING();
+ 	bm.ysize = atoi(msg);
+
+ 	bm.bitmapNumber = blist.totalBitmaps-1;
+
+ 	int expectedBytes = 2*bm.xsize*bm.ysize;
+ 	int spaceLeft = SECTOR_SIZE*(MAX_SECTOR+1-currentSector) - sizeof(bm);
+
+ 	printf("[cl] Okay, ready to parse bitmap #%d, size %dx%d pixels.\n\r", bm.bitmapNumber, bm.xsize, bm.ysize);
+
+ 	if(expectedBytes > spaceLeft){
+ 		printf("[cl] WARNING: This bitmap is not going to fit into memory! Only first %d bytes of total %d will be written. \n\r", spaceLeft, expectedBytes);
+ 	}
+
+ 	uint8_t sectorBuffer[SECTOR_SIZE];
+ 	int sectorBufferIndex = 0;
+
+ 	memcpy(sectorBuffer+sectorBufferIndex, (uint8_t *) &bm, sizeof(bm));
+ 	sectorBufferIndex += sizeof(bm);
+
+ 	int bytesLeft = expectedBytes;
+
+ 	while(bytesLeft > 0){
+ 		do{count = read_usart_message(msg, &huart1, 2, NEWLINE);} while (count==0);
+ 		if(count!=2){
+ 			printf("[cl] Error: Unexpected end of bitmap #%d data.\n\r.", bm.bitmapNumber);
+ 			break;
+ 		}
+ 		msg[2] = 0;
+		uint8_t deHexedByte = (uint8_t) strtol(msg, NULL, 16);
+		sectorBuffer[sectorBufferIndex] = deHexedByte;
+		sectorBufferIndex++;
+		bytesLeft--;
+		if(sectorBufferIndex == SECTOR_SIZE || bytesLeft == 0){
+			ext_flash_erase_4kB(currentSector*SECTOR_SIZE);
+			ext_flash_write_multipage(currentSector*SECTOR_SIZE, sectorBuffer, sectorBufferIndex);
+			sectorBufferIndex = 0;
+			if(bytesLeft > 0){
+				if(currentSector == MAX_SECTOR){
+					printf("[cl] Warning: Ran out of external memory while writing bitmap #%d. Last %d bytes not saved. \n\r", bm.bitmapNumber, bytesLeft);
+					break;
+				}
+				currentSector++;
+			}
+		}
+ 	}
+ 	read_usart_message(msg, &huart1, 2, NEWLINE); //get rid of newline left in buffer after reading last 2 chars
+
+ 	blist.lastUsedSector = currentSector;
+ 	memcpy(sectorBuffer, (uint8_t *) &blist, sizeof(blist));
+ 	ext_flash_erase_4kB(BITMAP_LIST_SECTOR*SECTOR_SIZE);
+ 	ext_flash_write_multipage(BITMAP_LIST_SECTOR*SECTOR_SIZE, sectorBuffer, sizeof(blist));
+
+	if(bytesLeft > 0){
+		printf("[cl] Bitmap #%d has been PARTIALLY written.\n\r", bm.bitmapNumber);
+		return 1001;
+	}
+	printf("[cl] Bitmap #%d has been written.\n\r", bm.bitmapNumber);
 	return 0;
 }
 
@@ -95,6 +165,7 @@ int configMarkBitmapsForDelete(){
 	ext_flash_erase_4kB(BITMAP_LIST_SECTOR*SECTOR_SIZE);
 	struct bitmapList bl;
 	bl.totalBitmaps = 0;
+	bl.lastUsedSector = BITMAP_LIST_SECTOR;
 	uint8_t buff[sizeof(bl)];
 	memcpy(buff, (uint8_t *) &bl, sizeof(bl));
 	ext_flash_write_multipage(BITMAP_LIST_SECTOR*SECTOR_SIZE, buff, sizeof(bl));

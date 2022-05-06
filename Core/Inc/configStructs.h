@@ -22,6 +22,7 @@ struct generalConfig{
 
 struct bitmapList{
 	uint16_t totalBitmaps;
+	uint16_t lastUsedSector;
 	uint16_t bitmapSectors[MAX_BITMAPS];
 };
 
