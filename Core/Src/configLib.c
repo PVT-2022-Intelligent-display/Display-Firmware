@@ -28,6 +28,7 @@ objectType_t stringToObjectType(char *str);
 int configScreensFromUart();
 int configBitmapFromUart();
 int configMarkBitmapsForDelete();
+void reportBitmaps(int printHex);
 
 
 /*
@@ -51,7 +52,8 @@ int configFromUart(){
 	char bitmapMsg[] = "bitmap";
 	char deleteMsg[] = "delete bitmaps";
 	char sreportMsg[] = "report screens";
-	char breportMsg[] = "report bitmpas";
+	char breportMsg[] = "report bitmaps";
+	char hreportMsg[] = "hex report bitmaps";
 
 	if(strcmp(configMsg, msg) == 0){
 		printf("[cl] Okay, proceeding to configure screens.\n\r");
@@ -74,11 +76,23 @@ int configFromUart(){
 	}
 	else if(strcmp(breportMsg, msg) == 0){
 		printf("[cl] Okay, reporting bitmaps.\n\r");
-		printf("NOT IMPLEMENTED");
+		reportBitmaps(0);
+		return 0;
+		}
+	else if(strcmp(hreportMsg, msg) == 0){
+		printf("[cl] Okay, printing bitmap hex data...\n\r");
+		reportBitmaps(1);
 		return 0;
 		}
 	else{
 		printf("[cl] Unexpected first msg. Got %s, which is not a recognised command.\n\r", msg);
+		printf("[cl] Known commands: \n\r");
+		printf("[cl] %s \n\r", configMsg);
+		printf("[cl] %s \n\r", bitmapMsg);
+		printf("[cl] %s \n\r", deleteMsg);
+		printf("[cl] %s \n\r", sreportMsg);
+		printf("[cl] %s \n\r", breportMsg);
+		printf("[cl] %s \n\r", hreportMsg);
 		return 1;
 	}
 }
@@ -459,6 +473,36 @@ int openScreen(uint16_t screenSector, struct screen *screenHeader, struct object
 }
 
 /*
+ * Reads bitmap from external flash, starting at sector number @bitmapSector. Its header is saved to *bitmapHeader.
+ *
+ * Caller needs to provide an array @dataArray at least @maxData pixels long. Each pixel is 2 bytes.
+ *
+ * @returns: number of pixels read. If maxPixels is sufficient, this will be the same as bitmapHeader.xsize*bitmapHeader.ysize.
+ * */
+int readBitmap(uint16_t bitmapSector, struct bitmap *bitmapHeader, uint16_t *dataArray, uint16_t maxPixels){
+	uint32_t flashAddr = bitmapSector*SECTOR_SIZE;
+	uint8_t bitmapHeaderBuffer[sizeof(struct bitmap)];
+	ext_flash_read(flashAddr, bitmapHeaderBuffer, sizeof(struct bitmap));
+	flashAddr += sizeof(struct bitmap);
+	*bitmapHeader = *((struct bitmap *) bitmapHeaderBuffer);
+
+	uint16_t pixelsToRead = (*bitmapHeader).xsize*(*bitmapHeader).ysize;
+	if(pixelsToRead > maxPixels){
+		printf("[cl] Limiting number of pixels of bitmap %d down to %d (from total size %d)\n\r", (*bitmapHeader).bitmapNumber, maxPixels, pixelsToRead);
+		pixelsToRead = maxPixels;
+	}
+
+	uint16_t pixelIndex = 0;
+	uint8_t pixelBuffer[2];
+	while(pixelIndex < pixelsToRead){
+		ext_flash_read(flashAddr, pixelBuffer, 2);
+		*(dataArray + pixelIndex) = *((uint16_t *) pixelBuffer);
+		flashAddr += 2;
+		pixelIndex += 1;
+	}
+}
+
+/*
  * debug function to check what is actually stored in flash
  */
 void printAllScreens(struct generalConfig gconf){
@@ -498,6 +542,40 @@ void printAllScreens(struct generalConfig gconf){
 	printf("[PAS] Finished. \n\n\n\r");
 }
 
+
+void reportBitmaps(int printHex){
+	uint8_t screenIndex = 0;
+	uint16_t maxObjects = 128;
+	uint16_t maxData = SECTOR_SIZE*4;
+	struct bitmapList blist;
+	readBitmapList(&blist);
+	int total = blist.totalBitmaps;
+	printf("[BR] There are %d bitmaps in memory spanning sectors %d to %d.\n\r", total, BITMAP_LIST_SECTOR+1, blist.lastUsedSector);
+	int i = 0;
+	while(i < total){
+		int thisSector = blist.bitmapSectors[i];
+		struct bitmap bm;
+		uint16_t pixelBuffer[128];
+		int pixelsRead = readBitmap(thisSector, &bm, pixelBuffer, 128);
+		printf("[BR] Bitmap #%d stored @%d is %dx%d pixels.\n\r", bm.bitmapNumber, bm.xsize, bm.ysize);
+		if(printHex){
+			printf("[BR] It's first %d pixels are (newlines don't correspond to rows!!):", pixelsRead);
+			int printIndex = 0;
+			while(printIndex < pixelsRead){
+				if(printIndex%16==0){
+					printf("\n\r    ");
+				}
+				printf("%04X ", pixelBuffer[printIndex]);
+			}
+			printf("\n\r");
+		}
+	}
+	printf("[BR] Bitmap report finished.\n\r");
+}
+
+
+
+//-------------------------------------------------------------------------------
 
 const char *typeNames[] 	= 		{"rectangle", "button", "label", "picture"};
 const objectType_t types[] 	= 		{rectangle, button, label, picture};
