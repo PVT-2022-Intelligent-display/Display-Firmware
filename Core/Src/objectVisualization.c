@@ -100,8 +100,8 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 
 
 /*
- * Draws a null-terminated string onto the LCD, starting at coordinates x,y, using 5x7 font scaled up by pixelscaling
- * (example - if pixelscaling == 5, a single char will occupy 25x35 pixels on the LCD). If useBackground is 1, then
+ * Draws a null-terminated string onto the LCD, starting at coordinates x,y, using 5x8 font (font is named 5x7 but is actually 5x8. Go figure.) scaled up by pixelscaling
+ * (example - if pixelscaling == 5, a single char will occupy 25x40 pixels on the LCD). If useBackground is 1, then
  * background of chars will be filled with bgColor, otherwise, it will be left as-is.
  * hSpacing and vSpacing define the horizontal and vertical separation of chars in lcd pixels (independent of pixelScaling).
  * Newlines in string are treated as newline + cariiage return.
@@ -122,7 +122,7 @@ void drawStringToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int 
 		}
 		else if(c == '\n'){
 			charX = x;
-			charY += 7*pixelScaling + vSpacing;
+			charY += 8*pixelScaling + vSpacing;
 		}
 		else{ //normal character, presumably.
 			if(charY > LCD_PIXEL_HEIGHT){
@@ -149,7 +149,7 @@ void drawCharToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int us
 	for(column = 0; column < 5; column++){
 		uint8_t columnByte = *(charFont + column);
 		uint8_t mask = 0x01;
-		for(row = 0; row < 7; row++){
+		for(row = 0; row < 8; row++){
 			uint16_t pixelColor = bgColor;
 			if(columnByte & mask){
 				pixelColor = textColor;
