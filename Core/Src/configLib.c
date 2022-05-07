@@ -107,7 +107,11 @@ int configBitmapFromUart(){
 		printf("[cl] Error trying to write bitmap to memory: No more free sectors. Last used: %d \n\r", blist.lastUsedSector);
 		return 1000;
 	}
-	blist.bitmapSectors[blist.totalBitmaps-1] = currentSector;
+	if(blist.totalBitmaps>=MAX_BITMAPS){
+		printf("[cl] Error trying to write bitmap to memory: Maximum number of bitmaps (%d) exceeded. \n\r", MAX_BITMAPS);
+		return 1001;
+	}
+	blist.bitmapSectors[blist.totalBitmaps] = currentSector;
  	blist.totalBitmaps++;
 
  	struct bitmap bm;
@@ -169,7 +173,7 @@ int configBitmapFromUart(){
 
 	if(bytesLeft > 0){
 		printf("[cl] Bitmap #%d has been PARTIALLY written.\n\r", bm.bitmapNumber);
-		return 1001;
+		return 1005;
 	}
 	printf("[cl] Bitmap #%d has been written.\n\r", bm.bitmapNumber);
 	return 0;
@@ -544,9 +548,6 @@ void printAllScreens(struct generalConfig gconf){
 
 
 void reportBitmaps(int printHex){
-	uint8_t screenIndex = 0;
-	uint16_t maxObjects = 128;
-	uint16_t maxData = SECTOR_SIZE*4;
 	struct bitmapList blist;
 	readBitmapList(&blist);
 	int total = blist.totalBitmaps;
@@ -557,18 +558,20 @@ void reportBitmaps(int printHex){
 		struct bitmap bm;
 		uint16_t pixelBuffer[128];
 		int pixelsRead = readBitmap(thisSector, &bm, pixelBuffer, 128);
-		printf("[BR] Bitmap #%d stored @%d is %dx%d pixels.\n\r", bm.bitmapNumber, bm.xsize, bm.ysize);
+		printf("[BR] Bitmap #%d stored @ sector %d is %dx%d pixels.\n\r", bm.bitmapNumber, thisSector, bm.xsize, bm.ysize);
 		if(printHex){
-			printf("[BR] It's first %d pixels are (newlines don't correspond to rows!!):", pixelsRead);
+			printf("[BR] It's first %d pixels are (newlines don't correspond to rows in bitmap!!):", pixelsRead);
 			int printIndex = 0;
 			while(printIndex < pixelsRead){
-				if(printIndex%16==0){
+				if(printIndex%8==0){
 					printf("\n\r    ");
 				}
-				printf("%04X ", pixelBuffer[printIndex]);
+				printf("%04X ", pixelBuffer[printIndex++]);
 			}
 			printf("\n\r");
+
 		}
+		i++;
 	}
 	printf("[BR] Bitmap report finished.\n\r");
 }

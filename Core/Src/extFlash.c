@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define FLASHWRITE_DEBUG_PRINT 1
+#define FLASHWRITE_DEBUG_PRINT 0
 
 
 void flashCSSet(){

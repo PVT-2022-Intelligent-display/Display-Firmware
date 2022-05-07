@@ -169,6 +169,8 @@ int main(void)
 	uint8_t dataArr[maxData];
 	uint8_t *pointerArr[maxObjects];
 
+	char str[] = "You fight \nlike a dairy\nfarmer!";
+	drawStringToLcd5x7(100, 20, 5, 0xAA, 0, 0xFF, 3, 5, str);
 
 	while (1)
 	{
@@ -177,21 +179,14 @@ int main(void)
 		int configResult = 1; //1 = no data on uart
 		if(loopNumber % 6000000 == 0){
 			 configResult = configFromUart(); //check if there's incoming data on config uart, if yes, attempt to read configuration
-			 char str[] = "You fight \nlike a dairy\nfarmer!";
-			 drawStringToLcd5x7(100, 20, 5, 0xAA, 0, 0xFF, 3, 5, str);
-
-			 //debug
-			 struct bitmapList bl;
-			 readBitmapList(&bl);
-			 printf("total bitmaps: >> %d \n\r", bl.totalBitmaps);
 		}
 
 		//redraw display
 		if(notYetDrawnFlag || configResult != 1){
 			notYetDrawnFlag = 0;
 			readGeneralConfig(&gConf);
-			printf("Redrawing display. Just FYI:\n\r");
-			printAllScreens(gConf);
+			printf("Redrawing display.\n\r");
+			//printAllScreens(gConf);
 			int objectsRead = 0;
 			currentScreen = 0;
 			if(currentScreen < gConf.totalScreens){
