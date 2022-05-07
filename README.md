@@ -42,7 +42,7 @@ Since dataLen is limited to 8192 bytes, bitmaps bigger than 64x64 pixels have to
 ## Label
 You should send N+8 bytes of data, where n is the number of characters in your label as expanded ascii bytes. The first 8 bytes descripbe the text and their meanings are as follows:
 
-byte 1 - pixel scaling. Defines how many LCD pixels are drawn per pixel of font. Font is 5x7, so when pixelscaling = 5, a single character will take up 25x35 pixels on lcd.
+byte 1 - pixel scaling. Defines how many LCD pixels are drawn per pixel of font. Font is 5x8, so when pixelscaling = 5, a single character will take up 25x40 pixels on lcd.
 
 byte 2 - horizontal spacing. How many lcd pixels between chars in x axis.
 
