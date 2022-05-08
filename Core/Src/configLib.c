@@ -143,7 +143,6 @@ int configBitmapFromUart(){
  	if(updateCount == 0){
  		updateCount = 1;
  	}
- 	updateCount = 1;
 
  	while(bytesLeft > 0){
  		if(bytesLeft %updateCount == 0){
