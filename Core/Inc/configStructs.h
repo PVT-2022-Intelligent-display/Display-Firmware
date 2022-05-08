@@ -47,7 +47,8 @@ typedef enum{
 	rectangle,		//monocolored rectangle
 	button,			//button which is reported when pressed
 	label,			//text label
-	picture
+	picture,		//used for displaying bitmaps from memory
+	pagebutton		//button which when pressed changes current page (TODO Danylo)
 } objectType_t;
 
 struct object{

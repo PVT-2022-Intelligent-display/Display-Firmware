@@ -589,9 +589,9 @@ void reportBitmaps(int printHex){
 
 //-------------------------------------------------------------------------------
 
-const char *typeNames[] 	= 		{"rectangle", "button", "label", "picture"};
-const objectType_t types[] 	= 		{rectangle, button, label, picture};
-const int typeCount = 4;
+const char *typeNames[] 	= 		{"rectangle", "button", "label", "picture", "pagebutton"};
+const objectType_t types[] 	= 		{rectangle, button, label, picture, pagebutton};
+const int typeCount = 5;
 
 // Make sure that str is long enough for longest member of typeNames!
 void objectTypeToString(objectType_t type, char *str){
@@ -602,7 +602,8 @@ void objectTypeToString(objectType_t type, char *str){
 			return;
 		}
 	}
-
+	char noneStr[] = "none";
+	strcpy(str, noneStr);
 }
 
 objectType_t stringToObjectType(char *str){

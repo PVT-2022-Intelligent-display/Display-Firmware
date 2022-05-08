@@ -62,7 +62,7 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 		int pixelsGotten = fetchBitmap(bitmapNumber, &bitmapHeader, pixelBuffer, maxPixels);
 
 		if(objectXSize != bitmapHeader.xsize*scaling || objectYSize != bitmapHeader.ysize*scaling){
-			printf("[OV] Warning: Scaled bitmap and picture (id %d) size mismatch! Object is %d x %d, bitmap is %d x %d scaled by factor of %d. Drawing scaled bitmap.\n\r",o.objectId, objectXSize, objectYSize, bitmapHeader.xsize, bitmapHeader.ysize, scaling);
+			printf("[OV] Warning: Scaled bitmap and picture (id %d) size mismatch! Object is %d x %d, bitmap is %d x %d scaled by factor of %d.\n\r",o.objectId, objectXSize, objectYSize, bitmapHeader.xsize, bitmapHeader.ysize, scaling);
 		}
 
 		drawBitmapToLcd(o.xstart, o.ystart, bitmapHeader, pixelBuffer, pixelsGotten, scaling);
@@ -92,6 +92,68 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 		}
 		labelString[expectedChars] = 0;
 		drawStringToLcd5x7(o.xstart, o.ystart, pixelScaling, textColor, useBg, bgColor, hSpace, vSpace, labelString);
+	}
+	else if(o.objectType == button || o.objectType == pagebutton){
+		//those two objects look the same and their only difference is that pagebutton holds target page in it's data.
+		int dIndex = 0;
+		if(o.objectType == pagebutton){
+			dIndex += 1; //skip target page data field
+		}
+		int dataLeft = o.dataLen - dIndex;
+		int expectedChars;
+		if(dataLeft < 6){
+			printf("[OV] Error: Too few visualization data bytes for (page)button id %d. Need: 6, got: %d \n\r", o.objectId, dataLeft);
+			return 3;
+		}
+		else if(dataLeft > 6 && dataLeft < 14){
+			printf("[OV] Warning: Unexpected ammount of visualization databytes for (page)button id %d. (Expected either 6 or more than 13, got %d). \n\r", o.objectId, dataLeft);
+			expectedChars = 0;
+		}
+		else{
+			expectedChars = dataLeft - 13;
+		}
+
+		uint16_t bitmapUnpressed =		 (*(data+dIndex) << 8) + *(data+dIndex+1);
+		dIndex += 2;
+		uint16_t bitmapPressed =		 (*(data+dIndex) << 8) + *(data+dIndex+1);
+		dIndex += 2;
+		uint16_t scaling = 	 		 	 (*(data+dIndex) << 8) + *(data+dIndex+1);
+		dIndex += 2;
+
+		int maxPixels = MAX_BITMAP_DRAW_XSIZE*MAX_BITMAP_DRAW_YSIZE;
+		uint16_t pixelBuffer[maxPixels];
+		struct bitmap bitmapHeader;
+		int pixelsGotten;
+		if(state==0){
+			pixelsGotten = fetchBitmap(bitmapUnpressed, &bitmapHeader, pixelBuffer, maxPixels);
+		}
+		else{
+			pixelsGotten = fetchBitmap(bitmapPressed, &bitmapHeader, pixelBuffer, maxPixels);
+		}
+
+		if(objectXSize != bitmapHeader.xsize*scaling || objectYSize != bitmapHeader.ysize*scaling){
+			printf("[OV] Warning: Scaled bitmap and (page)button (id %d) size mismatch! Object is %d x %d, bitmap is %d x %d scaled by factor of %d.\n\r",o.objectId, objectXSize, objectYSize, bitmapHeader.xsize, bitmapHeader.ysize, scaling);
+		}
+
+		drawBitmapToLcd(o.xstart, o.ystart, bitmapHeader, pixelBuffer, pixelsGotten, scaling);
+
+		if(expectedChars > 0){
+			uint8_t xoffset =			*(data + dIndex++);
+			uint8_t yoffset =			*(data + dIndex++);
+			uint8_t pixelScaling =		*(data + dIndex++);
+			uint8_t hSpace =			*(data + dIndex++);
+			uint8_t vSpace =			*(data + dIndex++);
+			uint16_t textColor = (*(data+dIndex) << 8) + *(data+dIndex+1);
+			dIndex += 2;
+			char textString[expectedChars + 1];
+			int i;
+			for(i = 0; i<expectedChars;i++){
+				textString[i] = *(data + dIndex++);
+			}
+			textString[expectedChars] = 0;
+			drawStringToLcd5x7(o.xstart+xoffset, o.ystart+yoffset, pixelScaling, textColor, 0, 0x0000, hSpace, vSpace, textString);
+		}
+
 	}
 	else{
 		printf("[OV] Error: drawObjectToLcd() not implemented for object type [%s]. \n\r", objName);
