@@ -6,6 +6,7 @@
  */
 
 #include "uart.h"
+#include <stdio.h>
 
 #define LEN_TX_BUFFER_RS485 1024
 volatile char tx_buffer_rs485[LEN_TX_BUFFER_RS485];
@@ -165,8 +166,9 @@ unsigned long get_rx_bytes(USART_TypeDef* USARTx)
 	return 0;
 }
 //**************************************************************************************
-char usart_message_ready(USART_TypeDef* USARTx, char delimiter)
+char usart_message_ready(USART_TypeDef* USARTx, char delimiter, int maxLen)
 {
+	int checked = 0;
 	if (USARTx == DBG_UART)
 	{
 		unsigned long tail = rd_pointer_rx_dbg;
@@ -176,6 +178,10 @@ char usart_message_ready(USART_TypeDef* USARTx, char delimiter)
 			if (rx_buffer_dbg[tail & (LEN_RX_BUFFER_DBG - 1)] == delimiter)
 				return 1;
 			++tail;
+			++checked;
+			if(checked>= maxLen){
+				return 1;
+			}
 		}
 	}
 	else if (USARTx == RS485_UART)
@@ -187,6 +193,10 @@ char usart_message_ready(USART_TypeDef* USARTx, char delimiter)
 			if (rx_buffer_rs485[tail & (LEN_RX_BUFFER_RS485 - 1)] == delimiter)
 				return 1;
 			++tail;
+			++checked;
+			if(checked>= maxLen){
+				return 1;
+			}
 		}
 	}
 	return 0;
@@ -199,7 +209,8 @@ char usart_message_ready(USART_TypeDef* USARTx, char delimiter)
 unsigned int read_usart_message(char* dst, UART_HandleTypeDef* huart, int max_len, char delimiter)
 {
 	USART_TypeDef* USARTx = huart->Instance;
-	if (usart_message_ready(USARTx,delimiter))
+
+	if (usart_message_ready(USARTx,delimiter, max_len))
 	{
 		int nr = 0;
 		do

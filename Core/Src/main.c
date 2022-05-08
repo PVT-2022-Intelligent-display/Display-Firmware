@@ -35,6 +35,8 @@
 
 #include "configLib.h"
 #include "configStructs.h"
+#include "objectVisualization.h"
+#include "bitmapCacheLib.h"
 
 /* USER CODE END Includes */
 
@@ -66,7 +68,8 @@ UART_HandleTypeDef huart2;
 SRAM_HandleTypeDef hsram1;
 
 /* USER CODE BEGIN PV */
-
+//global list of bitmaps, used by bitmap cache library.
+struct bitmapList globalBitmapList;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -126,6 +129,8 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
+
+
   //enable uart interrupt
   uint16_t count = 0;
   Init_LCD();
@@ -143,12 +148,10 @@ int main(void)
   	  printf("Entering main loop\n\r");
 
 
-  	  int loopNumber = 0;
-
-  	  struct generalConfig gConf;
+  	int loopNumber = 0;
 
 
-	printf("sog: %d %d \n\r", sizeof(struct generalConfig), sizeof(gConf));
+
 	LCD_fillRect(0,0,50,50,WHITE);
 	LCD_fillRect(470,0,50,50,RED);
 	LCD_fillRect(256,154,50,50,RED);
@@ -158,21 +161,69 @@ int main(void)
 	printf("Register result: %d\n\r",touch_register_element(0,0,256,154,256+50,154+50,0,0));
 	printf("Register result: %d\n\r",touch_register_element(0,0,100,100,150,150,0,0));
 
+	int notYetDrawnFlag = 1;
+	struct generalConfig gConf;
+	int currentScreen = 1;
+
+	//arrays for holding object data loaded from flash
+	uint16_t maxObjects = 128;
+	uint16_t maxData = SECTOR_SIZE*4;
+	struct screen screenHeader;
+	struct object objArr[maxObjects];
+	uint8_t dataArr[maxData];
+	uint8_t *pointerArr[maxObjects];
+	int objectsRead = 0;
+
+	char str[] = "You fight \nlike a dairy\nfarmer!";
+	drawStringToLcd5x7(100, 20, 5, 0xAA, 0, 0xFF, 3, 5, str);
+
 	while (1)
 	{
 
-		int secSleep = 1;
-		int msecSleep = 500;
-		//printf("Sleeping %d.%d secs. LN %d\r\n", secSleep, msecSleep, loopNumber++);
-		//HAL_Delay(1000*secSleep + msecSleep);
+		loopNumber++;
+		int configResult = 1; //1 = no data on uart
+		if(loopNumber % 6000000 == 0){
+			 configResult = configFromUart(); //check if there's incoming data on config uart, if yes, attempt to read configuration
+		}
+
+		//redraw display
+		if(notYetDrawnFlag || configResult != 1){
+			notYetDrawnFlag = 0;
+			readGeneralConfig(&gConf);
+			printf("Something changed. Redrawing display and updating bitmap list.\n\r");
+			readBitmapList(&globalBitmapList);
+			//printAllScreens(gConf);
+			objectsRead = 0;
+			currentScreen = 0;
+			if(currentScreen < gConf.totalScreens){
+				objectsRead = openScreen(gConf.screenSectors[currentScreen], &screenHeader, objArr, dataArr, pointerArr, maxData, maxObjects);
+			}
+			int i;
+			for(i = 0; i<objectsRead; i++){
+				drawObjectToLcd(objArr[i], pointerArr[i], 0);
+			}
+		}
+
+		//Demo: periodically redraw buttons, alternating between unpressed (0) and pressed (1) state. Feel free to remove this.
+		if(loopNumber % 10000000 == 0){
+			int i;
+			static int buttonsState = 0;
+			buttonsState = !buttonsState;
+			for(i = 0; i<objectsRead; i++){
+				struct object o = objArr[i];
+				if(o.objectType == button || o.objectType == screenbutton){
+					drawObjectToLcd(o, pointerArr[i], buttonsState);
+				}
+			}
+		}
+
+
+
 		touch_periodic_process();
 		static int flashDone = 0;
-		//if(!flashDone){
-		//	flashDone = flashDemoLoop();
-		//	continue;
-		//}
 
-		//uartDemoLoop();
+
+
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */

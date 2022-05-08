@@ -14,7 +14,10 @@
 #define PICTURE_START	4096
 #define SECTOR_SIZE		4096
 
+#define GENERAL_CONFIG_SECTOR 0
 #define MAX_SECTOR 		2047
+#define MAX_SCREEN_SECTOR 199
+#define BITMAP_LIST_SECTOR 200
 
 
 unsigned int ext_flash_readid();
