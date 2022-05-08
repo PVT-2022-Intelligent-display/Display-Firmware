@@ -1,5 +1,5 @@
 
-# Configuration protocol:
+# Configuration > OUTDATED, see communication.pdf instead!!
 
 (all words shown here in "quotes" are sent without quotes)
 
