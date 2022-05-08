@@ -93,20 +93,20 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 		labelString[expectedChars] = 0;
 		drawStringToLcd5x7(o.xstart, o.ystart, pixelScaling, textColor, useBg, bgColor, hSpace, vSpace, labelString);
 	}
-	else if(o.objectType == button || o.objectType == pagebutton){
-		//those two objects look the same and their only difference is that pagebutton holds target page in it's data.
+	else if(o.objectType == button || o.objectType == screenbutton){
+		//those two objects look the same and their only difference is that screenbutton holds target page in it's data.
 		int dIndex = 0;
-		if(o.objectType == pagebutton){
+		if(o.objectType == screenbutton){
 			dIndex += 1; //skip target page data field
 		}
 		int dataLeft = o.dataLen - dIndex;
 		int expectedChars;
 		if(dataLeft < 6){
-			printf("[OV] Error: Too few visualization data bytes for (page)button id %d. Need: 6, got: %d \n\r", o.objectId, dataLeft);
+			printf("[OV] Error: Too few visualization data bytes for (screen)button id %d. Need: 6, got: %d \n\r", o.objectId, dataLeft);
 			return 3;
 		}
 		else if(dataLeft > 6 && dataLeft < 14){
-			printf("[OV] Warning: Unexpected ammount of visualization databytes for (page)button id %d. (Expected either 6 or more than 13, got %d). \n\r", o.objectId, dataLeft);
+			printf("[OV] Warning: Unexpected ammount of visualization databytes for (screen)button id %d. (Expected either 6 or more than 13, got %d). \n\r", o.objectId, dataLeft);
 			expectedChars = 0;
 		}
 		else{

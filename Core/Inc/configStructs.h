@@ -48,7 +48,7 @@ typedef enum{
 	button,			//button which is reported when pressed
 	label,			//text label
 	picture,		//used for displaying bitmaps from memory
-	pagebutton		//button which when pressed changes current page (TODO Danylo)
+	screenbutton		//button which when pressed changes current page (TODO Danylo)
 } objectType_t;
 
 struct object{

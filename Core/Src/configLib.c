@@ -589,8 +589,8 @@ void reportBitmaps(int printHex){
 
 //-------------------------------------------------------------------------------
 
-const char *typeNames[] 	= 		{"rectangle", "button", "label", "picture", "pagebutton"};
-const objectType_t types[] 	= 		{rectangle, button, label, picture, pagebutton};
+const char *typeNames[] 	= 		{"rectangle", "button", "label", "picture", "screenbutton"};
+const objectType_t types[] 	= 		{rectangle, button, label, picture, screenbutton};
 const int typeCount = 5;
 
 // Make sure that str is long enough for longest member of typeNames!

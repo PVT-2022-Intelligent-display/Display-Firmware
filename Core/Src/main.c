@@ -172,6 +172,7 @@ int main(void)
 	struct object objArr[maxObjects];
 	uint8_t dataArr[maxData];
 	uint8_t *pointerArr[maxObjects];
+	int objectsRead = 0;
 
 	char str[] = "You fight \nlike a dairy\nfarmer!";
 	drawStringToLcd5x7(100, 20, 5, 0xAA, 0, 0xFF, 3, 5, str);
@@ -192,7 +193,7 @@ int main(void)
 			printf("Something changed. Redrawing display and updating bitmap list.\n\r");
 			readBitmapList(&globalBitmapList);
 			//printAllScreens(gConf);
-			int objectsRead = 0;
+			objectsRead = 0;
 			currentScreen = 0;
 			if(currentScreen < gConf.totalScreens){
 				objectsRead = openScreen(gConf.screenSectors[currentScreen], &screenHeader, objArr, dataArr, pointerArr, maxData, maxObjects);
@@ -200,6 +201,19 @@ int main(void)
 			int i;
 			for(i = 0; i<objectsRead; i++){
 				drawObjectToLcd(objArr[i], pointerArr[i], 0);
+			}
+		}
+
+		//Demo: periodically redraw buttons, alternating between unpressed (0) and pressed (1) state. Feel free to remove this.
+		if(loopNumber % 10000000 == 0){
+			int i;
+			static int buttonsState = 0;
+			buttonsState = !buttonsState;
+			for(i = 0; i<objectsRead; i++){
+				struct object o = objArr[i];
+				if(o.objectType == button || o.objectType == screenbutton){
+					drawObjectToLcd(o, pointerArr[i], buttonsState);
+				}
 			}
 		}
 
