@@ -509,7 +509,7 @@ int readBitmap(uint16_t bitmapSector, struct bitmap *bitmapHeader, uint16_t *dat
 	uint8_t pixelBuffer[2];
 	while(pixelIndex < pixelsToRead){
 		ext_flash_read(flashAddr, pixelBuffer, 2);
-		*(dataArray + pixelIndex) = *((uint16_t *) pixelBuffer);
+		*(dataArray + pixelIndex) = (uint16_t) (((*pixelBuffer) << 8) + *(pixelBuffer+1));
 		flashAddr += 2;
 		pixelIndex += 1;
 	}
