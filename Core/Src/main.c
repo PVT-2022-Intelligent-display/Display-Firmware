@@ -36,6 +36,7 @@
 #include "configLib.h"
 #include "configStructs.h"
 #include "objectVisualization.h"
+#include "bitmapCacheLib.h"
 
 /* USER CODE END Includes */
 
@@ -67,7 +68,8 @@ UART_HandleTypeDef huart2;
 SRAM_HandleTypeDef hsram1;
 
 /* USER CODE BEGIN PV */
-
+//global list of bitmaps, used by bitmap cache library.
+struct bitmapList globalBitmapList;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -127,6 +129,8 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
+
+
   //enable uart interrupt
   uint16_t count = 0;
   Init_LCD();
@@ -185,7 +189,8 @@ int main(void)
 		if(notYetDrawnFlag || configResult != 1){
 			notYetDrawnFlag = 0;
 			readGeneralConfig(&gConf);
-			printf("Redrawing display.\n\r");
+			printf("Something changed. Redrawing display and updating bitmap list.\n\r");
+			readBitmapList(&globalBitmapList);
 			//printAllScreens(gConf);
 			int objectsRead = 0;
 			currentScreen = 0;

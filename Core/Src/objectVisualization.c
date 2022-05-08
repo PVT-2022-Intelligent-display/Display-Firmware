@@ -15,22 +15,24 @@
 #include "configLib.h"
 #include "LCD_driver.h"
 #include "font.h"
+#include "bitmapCacheLib.h"
 
 void drawCharToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int useBackground, uint16_t bgColor, char c);
 void drawStringToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int useBackground, uint16_t bgColor, int hSpacing, int vSpacing, char *string);
+
+void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_t *pixelBuffer, uint16_t pixelCount, uint8_t scaling);
+
+
+#define MAX_BITMAP_DRAW_XSIZE 128
+#define MAX_BITMAP_DRAW_YSIZE 128
 
 
 int drawObjectToLcd(struct object o, uint8_t *data, int state){
 	char objName[30];
 	objectTypeToString(o.objectType, objName);
 
-	//check that object coords make sense
-	/*actually let's not waste time with it
-	 * if(o.xend - o.xstart < 0 || o.yend - o.ystart < 0){
-		printf("[OV] Error: width or height of object id %d is negative.\n\r", o.objectId);
-		return 1;
-	}
-	*/
+	int objectXSize = (o.xend - o.xstart);
+	int objectYSize = (o.yend - o.ystart);
 
 	printf("[OV] Drawing %s id %d \n\r", objName, o.objectId);
 
@@ -44,28 +46,28 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 		}
 		LCD_fillRect(o.xstart, o.ystart, (o.xend - o.xstart), (o.yend - o.ystart), color);
 	}
-	else if(o.objectType == picture){ //TODO fix data expectations
-		uint16_t xpos = o.xstart;
-		uint16_t ypos = o.ystart;
-		if(o.dataLen < (o.xend - o.xstart)*(o.yend - o.ystart)){
-			printf("[OV] Error: %d pixel bytes needed for bitmap id %d but only got %d. \n\r", (o.xend - o.xstart)*(o.yend - o.ystart), o.objectId, o.dataLen);
-			return 2;
+	else if(o.objectType == picture){
+
+		if(o.dataLen != 3){
+			printf("[OV] Error: Unexpected data len for picture id %d. Need: 3, got: %d \n\r", o.objectId, o.dataLen);
+			return 3;
 		}
-		uint16_t *colorArray = (uint16_t *) data;
-		uint32_t dataIndex = 0;
-		while(1){
-			uint16_t color = *(colorArray + dataIndex);
-			dataIndex++;
-			LCD_fillRect(xpos, ypos, 1, 1, color);
-			xpos++;
-			if(xpos>o.xend){
-				xpos = o.xstart;
-				ypos++;
-				if(ypos>o.yend){
-					break;
-				}
-			}
+
+		int bitmapNumber = *((uint16_t *) data);
+		int scaling = *((uint16_t *) (data+2));
+
+		int maxPixels = MAX_BITMAP_DRAW_XSIZE*MAX_BITMAP_DRAW_YSIZE;
+		uint16_t pixelBuffer[maxPixels];
+		struct bitmap bitmapHeader;
+		int pixelsGotten = fetchBitmap(bitmapNumber, &bitmapHeader, pixelBuffer, maxPixels);
+
+		if(objectXSize != bitmapHeader.xsize*scaling || objectYSize != bitmapHeader.ysize*scaling){
+			printf("[OV] Warning: Scaled bitmap and picture (id %d) size mismatch! Object is %d x %d, bitmap is %d x %d scaled by factor of %d. Drawing scaled bitmap.\n\r",o.objectId, objectXSize, objectYSize, bitmapHeader.xsize, bitmapHeader.ysize, scaling);
 		}
+
+		drawBitmapToLcd(o.xstart, o.ystart, bitmapHeader, pixelBuffer, maxPixels, scaling);
+		return 0;
+
 	}
 	else if(o.objectType==label){
 		int expectedChars = o.dataLen - 8;
@@ -96,6 +98,42 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 		return 100;
 	}
 	return 0;
+}
+
+/*
+ * Draws first @pixelCount pixels of a bitmap to lcd starting at xstart ystart, using provided buffer of pixels and scaling.
+ */
+void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_t *pixelBuffer, uint16_t pixelCount, uint8_t scaling){
+	int pixelIndex = 0;
+	int xpos = xstart;
+	int ypos = ystart;
+	while(pixelIndex < pixelCount){
+		uint16_t pixelColor = pixelBuffer[pixelIndex];
+		uint16_t pixel_x_1 = xpos;
+		uint16_t pixel_y_1 = ypos;
+		uint16_t pixel_x_2 = xpos + scaling;
+		uint16_t pixel_y_2 = ypos + scaling;
+		if(pixel_x_1 >= LCD_PIXEL_WIDTH){
+			pixelIndex++;
+			continue;
+		}
+		if(pixel_y_1 >= LCD_PIXEL_HEIGHT){
+			return;
+		}
+		if(pixel_x_2 >= LCD_PIXEL_WIDTH){
+			pixel_x_2 = LCD_PIXEL_WIDTH - 1;
+		}
+		if(pixel_y_2 >= LCD_PIXEL_HEIGHT){
+			pixel_x_2 = LCD_PIXEL_HEIGHT - 1;
+		}
+		LCD_fillRect(pixel_x_1, pixel_y_1, pixel_x_2-pixel_x_1, pixel_y_2 - pixel_y_1, pixelColor);
+		xpos+=scaling;
+		pixelIndex++;
+		if(pixelIndex % bitmapHeader.xsize==0){
+			xpos = xstart;
+			ypos += scaling;
+		}
+	}
 }
 
 

@@ -7,7 +7,9 @@
 #define LCD_DRIVER_H_
 
 #define 	MAX_PWM_PULSE  			65535
+
 /*LCD_Colours*/
+#define TRANSPARENT 			0x0001
 #define BLACK           		0x0000      /*   0,   0,   0 */
 #define NAVY            		0x000F      /*   0,   0, 128 */
 #define DGREEN          		0x03E0      /*   0, 128,   0 */

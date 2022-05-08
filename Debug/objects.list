@@ -1,5 +1,6 @@
 "./Core/Src/LCD_driver.o"
 "./Core/Src/TOUCH_driver.o"
+"./Core/Src/bitmapCacheLib.o"
 "./Core/Src/configLib.o"
 "./Core/Src/extFlash.o"
 "./Core/Src/extFlashDemo.o"

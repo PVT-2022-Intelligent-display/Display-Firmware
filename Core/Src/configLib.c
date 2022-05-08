@@ -80,7 +80,7 @@ int configFromUart(){
 		return 0;
 		}
 	else if(strcmp(hreportMsg, msg) == 0){
-		printf("[cl] Okay, printing bitmap hex data...\n\r");
+		printf("[cl] Okay, printing bitmaps' hex data...\n\r");
 		reportBitmaps(1);
 		return 0;
 		}
@@ -139,8 +139,16 @@ int configBitmapFromUart(){
  	sectorBufferIndex += sizeof(bm);
 
  	int bytesLeft = expectedBytes;
+ 	int updateCount = expectedBytes / 10;
+ 	if(updateCount == 0){
+ 		updateCount = 1;
+ 	}
+ 	updateCount = 1;
 
  	while(bytesLeft > 0){
+ 		if(bytesLeft %updateCount == 0){
+ 			printf("[cl] %d bytes left.\n\r", bytesLeft);
+ 		}
  		do{count = read_usart_message(msg, &huart1, 2, NEWLINE);} while (count==0);
  		if(count!=2){
  			printf("[cl] Error: Unexpected end of bitmap #%d data.\n\r.", bm.bitmapNumber);
@@ -477,6 +485,8 @@ int openScreen(uint16_t screenSector, struct screen *screenHeader, struct object
 }
 
 /*
+ * This function should not be called from general code! If you need to get a bitmap, use function fetchBitmap() from bitmapCacheLib.
+ *
  * Reads bitmap from external flash, starting at sector number @bitmapSector. Its header is saved to *bitmapHeader.
  *
  * Caller needs to provide an array @dataArray at least @maxData pixels long. Each pixel is 2 bytes.

@@ -11,6 +11,10 @@
 #ifndef INC_CONFIGSTRUCTS_H_
 #define INC_CONFIGSTRUCTS_H_
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stm32f4xx_hal.h>
+
 #define MAX_SCREENS 256
 #define MAX_BITMAPS 1024
 
