@@ -209,6 +209,7 @@ char usart_message_ready(USART_TypeDef* USARTx, char delimiter, int maxLen)
 unsigned int read_usart_message(char* dst, UART_HandleTypeDef* huart, int max_len, char delimiter)
 {
 	USART_TypeDef* USARTx = huart->Instance;
+
 	if (usart_message_ready(USARTx,delimiter, max_len))
 	{
 		int nr = 0;

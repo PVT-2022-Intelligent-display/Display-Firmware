@@ -20,7 +20,7 @@
 void drawCharToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int useBackground, uint16_t bgColor, char c);
 void drawStringToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int useBackground, uint16_t bgColor, int hSpacing, int vSpacing, char *string);
 
-void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_t *pixelBuffer, uint16_t pixelCount, uint8_t scaling);
+void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_t *pixelBuffer, uint16_t pixelCount, uint16_t scaling);
 
 
 #define MAX_BITMAP_DRAW_XSIZE 128
@@ -48,13 +48,18 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 	}
 	else if(o.objectType == picture){
 
-		if(o.dataLen != 3){
-			printf("[OV] Error: Unexpected data len for picture id %d. Need: 3, got: %d \n\r", o.objectId, o.dataLen);
+		if(o.dataLen != 4){
+			printf("[OV] Error: Unexpected data len for picture id %d. Need: 4, got: %d \n\r", o.objectId, o.dataLen);
 			return 3;
 		}
 
-		int bitmapNumber = *((uint16_t *) data);
-		int scaling = *((uint16_t *) (data+2));
+		int i = 0;
+		for(;i<4;i++){
+			printf(".%02x.", *(data+i));
+		}
+
+		uint16_t bitmapNumber =	 (*(data+0) << 8) + *(data+1);
+		uint16_t scaling = 	  	 (*(data+2) << 8) + *(data+3);
 
 		int maxPixels = MAX_BITMAP_DRAW_XSIZE*MAX_BITMAP_DRAW_YSIZE;
 		uint16_t pixelBuffer[maxPixels];
@@ -65,7 +70,7 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 			printf("[OV] Warning: Scaled bitmap and picture (id %d) size mismatch! Object is %d x %d, bitmap is %d x %d scaled by factor of %d. Drawing scaled bitmap.\n\r",o.objectId, objectXSize, objectYSize, bitmapHeader.xsize, bitmapHeader.ysize, scaling);
 		}
 
-		drawBitmapToLcd(o.xstart, o.ystart, bitmapHeader, pixelBuffer, maxPixels, scaling);
+		drawBitmapToLcd(o.xstart, o.ystart, bitmapHeader, pixelBuffer, pixelsGotten, scaling);
 		return 0;
 
 	}
@@ -76,19 +81,19 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 			return 3;
 		}
 		int dIndex = 0;
-		uint8_t pixelScaling = *((uint8_t *) (data + dIndex++));
-		uint8_t hSpace = *((uint8_t *) (data + dIndex++));
-		uint8_t vSpace = *((uint8_t *) (data + dIndex++));
-		uint8_t useBg = *((uint8_t *) (data + dIndex++));
-		uint16_t textColor = *((uint16_t *) (data + dIndex));
+		uint8_t pixelScaling =	*(data + dIndex++);
+		uint8_t hSpace = 		*(data + dIndex++);
+		uint8_t vSpace = 		*(data + dIndex++);
+		uint8_t useBg = 		*(data + dIndex++);
+		uint16_t textColor = 	(*(data + dIndex) << 8) + *(data+dIndex+1);
 		dIndex += 2;
-		uint16_t bgColor = *((uint16_t *) (data + dIndex));
+		uint16_t bgColor = 		(*(data + dIndex) << 8) + *(data+dIndex+1);
 		dIndex += 2;
-
+		printf("Label scale %d hspace %d textcolor %04x \n\r", pixelScaling, hSpace, textColor);
 		char labelString[expectedChars + 1];
 		int i;
 		for(i = 0; i<expectedChars;i++){
-			labelString[i] = *((uint8_t *) (data + dIndex++));
+			labelString[i] = *(data + dIndex++);
 		}
 		labelString[expectedChars] = 0;
 		drawStringToLcd5x7(o.xstart, o.ystart, pixelScaling, textColor, useBg, bgColor, hSpace, vSpace, labelString);
@@ -103,10 +108,11 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 /*
  * Draws first @pixelCount pixels of a bitmap to lcd starting at xstart ystart, using provided buffer of pixels and scaling.
  */
-void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_t *pixelBuffer, uint16_t pixelCount, uint8_t scaling){
+void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_t *pixelBuffer, uint16_t pixelCount, uint16_t scaling){
 	int pixelIndex = 0;
 	int xpos = xstart;
 	int ypos = ystart;
+	printf("[OV] Drawing bitmap at [%d , %d], %d pixels, scale = %d\n\r", xstart, ystart, pixelCount, scaling);
 	while(pixelIndex < pixelCount){
 		uint16_t pixelColor = pixelBuffer[pixelIndex];
 		uint16_t pixel_x_1 = xpos;
@@ -127,6 +133,7 @@ void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_
 			pixel_x_2 = LCD_PIXEL_HEIGHT - 1;
 		}
 		LCD_fillRect(pixel_x_1, pixel_y_1, pixel_x_2-pixel_x_1, pixel_y_2 - pixel_y_1, pixelColor);
+		printf("%04x @ [%d %d]\n\r", pixelColor, pixel_x_1, pixel_y_1);
 		xpos+=scaling;
 		pixelIndex++;
 		if(pixelIndex % bitmapHeader.xsize==0){
