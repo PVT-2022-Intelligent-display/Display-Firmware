@@ -219,16 +219,19 @@ void ext_flash_write_multipage(unsigned int address, unsigned char *buff, unsign
 	unsigned int addrIncrement = 0;
 
 	while(bytesLeft > 0){
+		unsigned int writtenNow = PAGE_SIZE;
 		if(bytesLeft <= PAGE_SIZE){
 			memcpy(pageBuff, buff + buffIndex, bytesLeft);
+			writtenNow = bytesLeft;
 			bytesLeft = 0;
 		}
 		else{
 			memcpy(pageBuff, buff + buffIndex, PAGE_SIZE);
 			bytesLeft -= PAGE_SIZE;
+			buffIndex += PAGE_SIZE;
 		}
-		ext_flash_write(address + addrIncrement, pageBuff, PAGE_SIZE);
-		addrIncrement += PAGE_SIZE;
+		ext_flash_write(address + addrIncrement, pageBuff, writtenNow);
+		addrIncrement += writtenNow;
 	}
 
 }

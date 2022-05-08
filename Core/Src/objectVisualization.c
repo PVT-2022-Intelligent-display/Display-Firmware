@@ -53,11 +53,6 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 			return 3;
 		}
 
-		int i = 0;
-		for(;i<4;i++){
-			printf(".%02x.", *(data+i));
-		}
-
 		uint16_t bitmapNumber =	 (*(data+0) << 8) + *(data+1);
 		uint16_t scaling = 	  	 (*(data+2) << 8) + *(data+3);
 
@@ -109,7 +104,7 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
  * Draws first @pixelCount pixels of a bitmap to lcd starting at xstart ystart, using provided buffer of pixels and scaling.
  */
 void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_t *pixelBuffer, uint16_t pixelCount, uint16_t scaling){
-	int pixelIndex = 0;
+	uint16_t pixelIndex = 0;
 	int xpos = xstart;
 	int ypos = ystart;
 	printf("[OV] Drawing bitmap at [%d , %d], %d pixels, scale = %d\n\r", xstart, ystart, pixelCount, scaling);
@@ -132,8 +127,10 @@ void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_
 		if(pixel_y_2 >= LCD_PIXEL_HEIGHT){
 			pixel_x_2 = LCD_PIXEL_HEIGHT - 1;
 		}
-		LCD_fillRect(pixel_x_1, pixel_y_1, pixel_x_2-pixel_x_1, pixel_y_2 - pixel_y_1, pixelColor);
-		printf("%04x @ [%d %d]\n\r", pixelColor, pixel_x_1, pixel_y_1);
+		if(pixelColor!=TRANSPARENT){
+			LCD_fillRect(pixel_x_1, pixel_y_1, pixel_x_2-pixel_x_1, pixel_y_2 - pixel_y_1, pixelColor);
+		}
+		//printf("%04x @ [%d %d]\n\r", pixelColor, pixel_x_1, pixel_y_1);
 		xpos+=scaling;
 		pixelIndex++;
 		if(pixelIndex % bitmapHeader.xsize==0){
