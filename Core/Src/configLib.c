@@ -441,6 +441,7 @@ void readBitmapList(struct bitmapList *destination){
  *
  */
 int openScreen(uint16_t screenSector, struct screen *screenHeader, struct object *objectArray, uint8_t *dataArray, uint8_t **dataPointerArray, uint16_t maxData, uint16_t maxObjects){
+
 	uint32_t flashAddr = screenSector*SECTOR_SIZE;
 	uint8_t screenHeaderBuffer[sizeof(struct screen)];
 	ext_flash_read(flashAddr, screenHeaderBuffer, sizeof(struct screen));
@@ -589,9 +590,9 @@ void reportBitmaps(int printHex){
 
 //-------------------------------------------------------------------------------
 
-const char *typeNames[] 	= 		{"rectangle", "button", "label", "picture", "screenbutton"};
-const objectType_t types[] 	= 		{rectangle, button, label, picture, screenbutton};
-const int typeCount = 5;
+const char *typeNames[] 	= 		{"rectangle", "button", "label", "picture", "screenbutton","slider"};
+const objectType_t types[] 	= 		{rectangle, button, label, picture, screenbutton, slider};
+const int typeCount = 6;
 
 // Make sure that str is long enough for longest member of typeNames!
 void objectTypeToString(objectType_t type, char *str){

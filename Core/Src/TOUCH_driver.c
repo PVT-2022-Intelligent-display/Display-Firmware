@@ -1,9 +1,21 @@
 
+
+
+
+
 #include "TOUCH_driver.h"
 #include "uart.h"
 #include <stdio.h>
 #include <stm32f4xx_hal_gpio.h>
 #include "LCD_driver.h"
+#include "configStructs.h"
+#include "configLib.h"
+#include "configStructs.h"
+#include "objectVisualization.h"
+#include "bitmapCacheLib.h"
+
+extern int currentScreen;
+extern int notYetDrawnFlag;
 
 /*----------------------------------------------MACRO------------------------------------------------------------------*/
 #if LINEAR_INTERPOLATION == 0
@@ -28,7 +40,7 @@
 #define 	I2C_DELAY				1000
 #define 	LINEAR_INTERPOLATION    0
 
-#define 	DEBUG_TOUCH             0  //DEBUG ENABLE WHEN 1
+#define 	DEBUG_TOUCH             1  //DEBUG ENABLE WHEN 1
 
 #define		TOUCH_RESET_PORT		GPIOB
 #define		TOUCH_RESET_PORT_RCC()	__GPIOB_CLK_ENABLE();
@@ -40,8 +52,12 @@ touch_t touch;
 struct element_t pressed_element;
 uint8_t active_page;
 uint8_t active_layer;
+uint8_t slider_last_percents;
+struct generalConfig gConf;
+
 /*----------------------------------------------Private function define----------------------------------------------*/
 struct element_t touch_elements_register[MAX_NUM_PAGES][MAX_NUM_LAYERS][MAX_NUM_ELEMENTS];
+//struct touch_t last_touch;
 static unsigned short touch_read(unsigned char adr);
 static void touch_write_control(unsigned char ctrl);
 static void touch_write_register(uint8_t adr, uint16_t val);
@@ -56,8 +72,10 @@ static void touch_get_pressed_element();
 // Initialize touch screen
 void set_page(uint8_t page){active_page = page;}
 void set_layer(uint8_t layer){active_layer = layer;}
+void touch_get_conf(struct generalConfig conf){gConf = conf;};
 void touch_init(I2C_HandleTypeDef def)
 {
+
 	hi2c1_touch = def;
 	touch_write_register(0x0E,0xC000);
 	touch_write_control(0x80);
@@ -74,7 +92,8 @@ void touch_init(I2C_HandleTypeDef def)
 				touch_elements_register[p][l][i].y1 = 0;
 				touch_elements_register[p][l][i].element_type = 0;
 				touch_elements_register[p][l][i].isAlive = 0;
-				touch_elements_register[p][l][i].element_pointer = 0;
+				touch_elements_register[p][l][i].element_data_pointer = 0;
+				touch_elements_register[p][l][i].ID = 0;
 			}
 		}
 	}
@@ -83,10 +102,12 @@ void touch_init(I2C_HandleTypeDef def)
 	pressed_element.y = 0;
 	pressed_element.y1 = 0;
 	pressed_element.element_type = 0;
-	pressed_element.element_pointer = 0;
+	pressed_element.element_data_pointer = 0;
 	pressed_element.isAlive = 0;
+	pressed_element.ID = 0;
 	active_layer = 0;
 	active_page = 0;
+	slider_last_percents = 0;
 }
 // Reset touch screen IC module
 void touch_reset()
@@ -99,7 +120,20 @@ void touch_reset()
 // Return an structure type of element_t with last pressed btn data
 struct element_t get_last_pressed_element()
 {
-	return pressed_element;
+
+	struct element_t pressed = pressed_element;
+
+#if DEBUG_TOUCH == 1
+	printf("LAST ELEMENT WAS %d %d\n\r", pressed_element.x,pressed_element.y);
+	printf("SENDED %d %d\n\r", pressed.x,pressed.y);
+#endif
+
+	struct element_t empty;
+	pressed_element = empty;
+#if DEBUG_TOUCH == 1
+	printf("RESETED TO %d %d\n\r", pressed_element.x,pressed_element.y);
+#endif
+	return pressed;
 }
 // After each call identifies if the touch was pressed and if TRUEm then identify the element
 void touch_periodic_process()
@@ -121,6 +155,8 @@ void touch_periodic_process()
 #endif
 		touch.y=touch.x1;
 		touch.x=1024-touch.y1;
+		//last_touch.y = touch.y;
+		//last_touch.x = touch.x
 #if DEBUG_TOUCH == 1
 		printf("TOUCH Y reverted %d\n\r", touch.y);
 		printf("TOUCH X reverted %d\n\r", touch.x);
@@ -158,31 +194,98 @@ static void touch_get_pressed_element()
 			memcpy(&pressed_element,&touch_elements_register[active_page][active_layer][i],sizeof(struct element_t));
 
 #if DEBUG_TOUCH == 1
-			printf(" PRESSED ELEMENT \n\r X: %d\n\r X1: %d\n\r Y: %d\n\r Y1: %d\n\r",pressed_element.x,pressed_element.x1,pressed_element.y,pressed_element.y1);
+			printf(" PRESSED ELEMENT \n\r X: %d\n\r X1: %d\n\r Y: %d\n\r Y1: %d\n\r TYPE: %d\n\r",pressed_element.x,pressed_element.x1,pressed_element.y,pressed_element.y1,pressed_element.element_type);
 
 #endif
+			act_pressed_element();
 		}
 	}
 
 	return touch_elements_register[-1];
 }
+void act_pressed_element()
+{
+	char reply[256];
+
+#if DEBUG_TOUCH == 1
+	printf("[TCH] Element type is: %d\n\r", pressed_element.element_type);
+#endif
+	if(pressed_element.element_type == screenbutton)
+	{
+		drawObjectToLcd(pressed_element.obj,pressed_element.element_data_pointer,1);
+		delay_ms(50);
+		drawObjectToLcd(pressed_element.obj,pressed_element.element_data_pointer,0);
+		if (currentScreen < gConf.totalScreens)
+		{
+			currentScreen++;
+		}else
+		{
+			currentScreen = 0;
+		}
+		set_page(currentScreen);
+		notYetDrawnFlag = 1;
+		sprintf(reply,"Type:%d ID:%d Value:%d \n\r",pressed_element.element_type, pressed_element.ID,currentScreen);
+#if DEBUG_TOUCH == 1
+		printf("[TCH] Screenbutton was pressed\n\r");
+		printf(reply);
+#endif
+
+
+		int ret = send_usart_message(reply, &huart2, strlen(reply));
+
+	}else if(pressed_element.element_type == button)
+	{
+		sprintf(reply,"Type:%d ID:%d\n\r",pressed_element.element_type, pressed_element.ID,slider_last_percents);
+#if DEBUG_TOUCH == 1
+		printf("[TCH] Button was pressed\n\r");
+		printf(reply);
+#endif
+		drawObjectToLcd(pressed_element.obj,pressed_element.element_data_pointer,1);
+		delay_ms(50);
+		drawObjectToLcd(pressed_element.obj,pressed_element.element_data_pointer,0);
+		int ret = send_usart_message(reply, &huart2, strlen(reply));
+	}else if(pressed_element.element_type == slider)
+	{
+
+		int slider_value = drawObjectToLcd(pressed_element.obj,pressed_element.element_data_pointer,touch.x);
+		sprintf(reply,"Type:%d ID:%d Value: %d\n\r",pressed_element.element_type, pressed_element.ID,slider_value);
+#if DEBUG_TOUCH == 1
+		printf("[TCH] Slider was pressed\n\r");
+		printf(reply);
+#endif
+		int ret = send_usart_message(reply, &huart2, strlen(reply));
+	}
+	else
+	{
+
+		sprintf(reply,"Type:%d ID:%d",pressed_element.element_type, pressed_element.ID);
+#if DEBUG_TOUCH == 1
+		printf(reply);
+		printf("[TCH] Unknown element type %d\n\r", pressed_element.element_type);
+#endif
+
+		int ret = send_usart_message(reply, &huart2, strlen(reply));
+	}
+}
 // Register element to the touch elements array.
-uint8_t touch_register_element(uint8_t page,uint8_t layer,uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,uint16_t element_type, uint32_t element_pointer)
+uint8_t touch_register_element(uint8_t page,uint8_t layer,struct object obj, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,uint16_t element_type, uint32_t element_pointer,uint16_t ID)
 {
 	for(int i = 0;i<MAX_NUM_ELEMENTS;i++)
 	{
 		if(touch_elements_register[page][layer][i].isAlive == 0)
 		{
+			touch_elements_register[page][layer][i].obj = obj;
 			touch_elements_register[page][layer][i].x = x0;
 			touch_elements_register[page][layer][i].x1 =x1;
 			touch_elements_register[page][layer][i].y =y0;
 			touch_elements_register[page][layer][i].y1 =y1;
 			touch_elements_register[page][layer][i].element_type = element_type;
-			touch_elements_register[page][layer][i].element_pointer = element_pointer;
+			touch_elements_register[page][layer][i].element_data_pointer = element_pointer;
+			touch_elements_register[page][layer][i].ID = ID;
 			touch_elements_register[page][layer][i].isAlive = 1;
 #if DEBUG_TOUCH == 1
-			printf("\n\rElement registered with index: %d\n\r",i);
-			printf("\n\rElement values: %d %d %d %d %d %d %d\n\r",x0,x1,y0,y1,element_pointer,element_type);
+			printf("\n\r [TCH] Element registered with index: %d\n\r",i);
+			printf("\n\r [TCH] Element values: %d %d %d %d %d %d %d %d\n\r",x0,x1,y0,y1,element_pointer,element_type, ID);
 #endif
 			return 0;
 		}
@@ -207,7 +310,8 @@ void touch_unregister_element(uint8_t page,uint8_t layer,uint8_t idx)
 	touch_elements_register[page][layer][idx].y1 = 0;
 	touch_elements_register[page][layer][idx].element_type = 0;
 	touch_elements_register[page][layer][idx].isAlive = 0;
-	touch_elements_register[page][layer][idx].element_pointer = 0;
+	touch_elements_register[page][layer][idx].ID = 65535;
+	touch_elements_register[page][layer][idx].element_data_pointer = 0;
 }
 /*----------------------------------------------Private function---------------------------------------------------*/
 //Write to touch IC control command via I2C

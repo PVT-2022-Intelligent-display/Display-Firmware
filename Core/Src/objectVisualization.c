@@ -19,8 +19,9 @@
 
 void drawCharToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int useBackground, uint16_t bgColor, char c);
 void drawStringToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int useBackground, uint16_t bgColor, int hSpacing, int vSpacing, char *string);
-
 void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_t *pixelBuffer, uint16_t pixelCount, uint16_t scaling);
+
+uint16_t drawSlider(int x_start, int y_start, struct bitmap bitmap_header, uint16_t *pixelBuffer, uint16_t pixelCount, uint16_t scaling, uint16_t value, uint16_t color);
 
 
 #define MAX_BITMAP_DRAW_XSIZE 128
@@ -28,6 +29,7 @@ void drawBitmapToLcd(int xstart, int ystart, struct bitmap bitmapHeader, uint16_
 
 
 int drawObjectToLcd(struct object o, uint8_t *data, int state){
+
 	char objName[30];
 	objectTypeToString(o.objectType, objName);
 
@@ -154,6 +156,27 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 			drawStringToLcd5x7(o.xstart+xoffset, o.ystart+yoffset, pixelScaling, textColor, 0, 0x0000, hSpace, vSpace, textString);
 		}
 
+	}else if (o.objectType == slider)
+	{
+		uint16_t dIndex = 0;
+		uint8_t  bitmap_number = *(data + dIndex++);
+		//uint8_t  color = *(data + dIndex++);
+		uint8_t  default_value =  *(data + dIndex++);
+		uint8_t scaling = *(data + dIndex++);
+		uint8_t color = (*(data+dIndex) << 8) + *(data+dIndex+1);
+		printf("Slider values: %d %d %d %d %d \n\r",o.xend,o.xstart,o.yend,o.ystart,o.xstart);
+
+		struct bitmap bitmap_header;
+		int max_pixels = MAX_BITMAP_DRAW_XSIZE*MAX_BITMAP_DRAW_YSIZE;
+		uint16_t pixel_buffer[max_pixels];
+		int pixel_gotten = fetchBitmap(7, &bitmap_header, pixel_buffer, max_pixels);
+		int slider_value = drawSlider(o.xstart, o.ystart, bitmap_header, pixel_buffer,pixel_gotten, 1, state,BLACK); //TODO change the scaling
+		return slider_value;
+	}
+	else if (o.objectType == screenbutton)
+	{
+		uint16_t dIndex = 0;
+
 	}
 	else{
 		printf("[OV] Error: drawObjectToLcd() not implemented for object type [%s]. \n\r", objName);
@@ -161,7 +184,48 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 	}
 	return 0;
 }
+/*
+ * Draw a slider using bitmaps stored in memmory
+ */
+uint16_t drawSlider(int x_start, int y_start, struct bitmap bitmap_header, uint16_t *pixelBuffer, uint16_t pixelCount, uint16_t scaling, uint16_t value, uint16_t color)
+{
+	//change the colors in the bitmap
+	//draw a slider
+	drawBitmapToLcd((int)x_start,(int)y_start, bitmap_header, pixelBuffer, pixelCount,scaling);
 
+	uint16_t x_max = x_start + (20 +  (uint16_t)((bitmap_header.xsize) - (62)))* scaling;
+	uint16_t x_min = x_start + (20 * scaling);
+	uint16_t x_pointer = 0;
+
+
+	if (value <= x_min)
+	{
+		uint16_t y_pointer = y_start  + (uint16_t)(bitmap_header.ysize * scaling) /3;
+		x_pointer = x_min;
+		LCD_fillRect(x_pointer, y_pointer, 20*scaling, 20*scaling, color);
+		//uint16_t x_pointer = x_start+ (20 +  (uint16_t)((bitmap_header.xsize) - (62))*(value/100)) * scaling;
+	}else if (value >= x_max)
+	{
+		uint16_t y_pointer = y_start  + (uint16_t)(bitmap_header.ysize * scaling) /3;
+		x_pointer = x_max;
+		LCD_fillRect(x_pointer ,y_pointer, 20*scaling, 20*scaling, color);
+	}else if (value > x_min && value < x_max)
+	{
+		x_pointer = value;
+		uint16_t y_pointer = y_start  + (uint16_t)(bitmap_header.ysize * scaling) /3;
+		LCD_fillRect(x_pointer, y_pointer, 20*scaling, 20*scaling, color);
+	}
+	uint16_t x_percent = (uint16_t) (100 * (x_pointer+20)/((bitmap_header.xsize -62) * scaling)) -35;
+	if (x_percent > 100)
+	{
+		x_percent = 100;
+	}else if (x_percent > 500)
+	{
+		x_percent = 0;
+	}
+	return x_percent;
+
+}
 /*
  * Draws first @pixelCount pixels of a bitmap to lcd starting at xstart ystart, using provided buffer of pixels and scaling.
  */

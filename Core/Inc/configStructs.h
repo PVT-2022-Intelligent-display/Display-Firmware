@@ -41,17 +41,18 @@ struct screen{
 	uint16_t objectCount;
 };
 
-
 typedef enum{
 	none,			//invalid value
 	rectangle,		//monocolored rectangle
 	button,			//button which is reported when pressed
 	label,			//text label
 	picture,		//used for displaying bitmaps from memory
-	screenbutton		//button which when pressed changes current page (TODO Danylo)
+	screenbutton,	//button which when pressed changes current page (TODO Danylo)
+	slider			//slider that can change the value in percents from 0 to 100% (TODO Danylo)
 } objectType_t;
 
 struct object{
+
 	objectType_t objectType;
 	uint16_t objectId;
 	uint16_t xstart;
