@@ -17,7 +17,7 @@
 
 #define NEWLINE 13
 
-#define DEBUG_EXTERNAL_UART
+//#define DEBUG_EXTERNAL_UART
 
 /*
  * Expected input: sXXX string\r
@@ -37,11 +37,11 @@ int handleIncomingProcessorMsg(int screenObjectCount, struct object *objectArray
 	int count = read_usart_message(msg, &huart2, sizeof(msg), NEWLINE);
 	msg[count] = 0;
 
-	/*
+
 	if(count == 0){
-		printf("[epc] No data on uart.\n\r");
+		//printf("[epc] No data on uart.\n\r");
 		return 1;
-	}*/
+	}
 
 	char commandChar = msg[0];
 	if(commandChar != 's'){
@@ -77,8 +77,8 @@ int handleIncomingProcessorMsg(int screenObjectCount, struct object *objectArray
 	numStr[spaceIndex] = 0;
 	int soughtId = atoi(numStr);
 
-	sprintf(reply,"[epc] scrn cnt  %d, seek %d.\n\r", screenObjectCount, soughtId);
-	send_usart_message(reply, &huart2, strlen(reply));
+	//sprintf(reply,"[epc] scrn cnt  %d, seek %d.\n\r", screenObjectCount, soughtId);
+	//send_usart_message(reply, &huart2, strlen(reply));
 
 	struct object targetObject;
 	uint8_t *targetObjectDataPointer;
@@ -87,10 +87,8 @@ int handleIncomingProcessorMsg(int screenObjectCount, struct object *objectArray
 	int i = 0;
 	while(1){
 		targetObject = *(objectArray + i);
-		sprintf(reply,"[epc] [%d] check id: %d, type: %d.\n\r", i, targetObject.objectId, (int) targetObject.objectType);
-		while(send_usart_message(reply, &huart2, strlen(reply)) == 0){
-			;
-		}
+		//sprintf(reply,"[epc] [%d] check id: %d, type: %d.\n\r", i, targetObject.objectId, (int) targetObject.objectType);
+		//while(send_usart_message(reply, &huart2, strlen(reply)) == 0){;}
 		if(targetObject.objectId == soughtId){
 			targetObjectDataPointer = *(pointerArray + i);
 			found = 1;
@@ -110,10 +108,7 @@ int handleIncomingProcessorMsg(int screenObjectCount, struct object *objectArray
 #endif
 		return 200;
 	}
-	else{
-		sprintf(reply,"[epc] Object found\n\r");
-		send_usart_message(reply, &huart2, strlen(reply));
-	}
+
 
 	drawInteractiveLabelToLcd(targetObject, targetObjectDataPointer, (msg + spaceIndex));
 
