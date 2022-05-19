@@ -147,20 +147,9 @@ void touch_periodic_process()
 		touch.x1=touch_read(0x01);
 		touch.y=touch_read(0x02);
 		touch.y1=touch_read(0x03);
-#if DEBUG_TOUCH == 1
-		printf("TOUCH x %d\n\r", touch.x);
-		printf("TOUCH x1 %d\n\r", touch.x1);
-		printf("TOUCH y %d\n\r", touch.y);
-		printf("TOUCH y1 %d\n\r", touch.y1);
-#endif
 		touch.y=touch.x1;
 		touch.x=1024-touch.y1;
 		//last_touch.y = touch.y;
-		//last_touch.x = touch.x
-#if DEBUG_TOUCH == 1
-		printf("TOUCH Y reverted %d\n\r", touch.y);
-		printf("TOUCH X reverted %d\n\r", touch.x);
-#endif
 		if(validate_touch_coordinates()==1)
 		{
 #if DEBUG_TOUCH == 1
@@ -178,30 +167,38 @@ static void touch_get_pressed_element()
 	for(int i = 0; i<MAX_NUM_ELEMENTS;i++)
 	{
 
-		if((touch.x >= touch_elements_register[active_page][active_layer][i].x )
-		&& (touch.x <= touch_elements_register[active_page][active_layer][i].x1)
-		&&(touch.y1 >= touch_elements_register[active_page][active_layer][i].y)
-		&&(touch.y <= touch_elements_register[active_page][active_layer][i].y1))
+		if((touch_elements_register[active_page][active_layer][i].element_type != label )
+			&& (touch_elements_register[active_page][active_layer][i].element_type != rectangle )
+			&&(touch_elements_register[active_page][active_layer][i].element_type != picture )
+			&&(touch_elements_register[active_page][active_layer][i].element_type != interactivelabel))
 		{
 
-#if DEBUG_TOUCH == 1
-			x0 = touch_elements_register[active_page][active_layer][i].x;
-			x1 = touch_elements_register[active_page][active_layer][i].x1;
-			y0 = touch_elements_register[active_page][active_layer][i].y;
-			y1 = touch_elements_register[active_page][active_layer][i].y1;
-			printf(" GETTING PRESSED ELEMENT \n\r X: %d\n\r X1: %d\n\r Y: %d\n\r Y1: %d\n\r",x0,x1,y0,y1);
-#endif
-			memcpy(&pressed_element,&touch_elements_register[active_page][active_layer][i],sizeof(struct element_t));
+			if((touch.x >= touch_elements_register[active_page][active_layer][i].x)
+				&& (touch.x <= touch_elements_register[active_page][active_layer][i].x1)
+				&&(touch.y >= touch_elements_register[active_page][active_layer][i].y)
+				&&(touch.y <= touch_elements_register[active_page][active_layer][i].y1))
+			{
 
-#if DEBUG_TOUCH == 1
-			printf(" PRESSED ELEMENT \n\r X: %d\n\r X1: %d\n\r Y: %d\n\r Y1: %d\n\r TYPE: %d\n\r",pressed_element.x,pressed_element.x1,pressed_element.y,pressed_element.y1,pressed_element.element_type);
+			#if DEBUG_TOUCH == 1
+						x0 = touch_elements_register[active_page][active_layer][i].x;
+						x1 = touch_elements_register[active_page][active_layer][i].x1;
+						y0 = touch_elements_register[active_page][active_layer][i].y;
+						y1 = touch_elements_register[active_page][active_layer][i].y1;
+						printf(" GETTING PRESSED ELEMENT \n\r X: %d\n\r X1: %d\n\r Y: %d\n\r Y1: %d\n\r",x0,x1,y0,y1);
+			#endif
+						memcpy(&pressed_element,&touch_elements_register[active_page][active_layer][i],sizeof(struct element_t));
 
-#endif
-			act_pressed_element();
+			#if DEBUG_TOUCH == 1
+						printf(" PRESSED ELEMENT \n\r X: %d\n\r X1: %d\n\r Y: %d\n\r Y1: %d\n\r TYPE: %d\n\r",pressed_element.x,pressed_element.x1,pressed_element.y,pressed_element.y1,pressed_element.element_type);
+
+			#endif
+						act_pressed_element();
+			}
 		}
 	}
 
-	return touch_elements_register[-1];
+
+	//return touch_elements_register[-1];
 }
 void act_pressed_element()
 {
@@ -215,16 +212,15 @@ void act_pressed_element()
 		drawObjectToLcd(pressed_element.obj,pressed_element.element_data_pointer,1);
 		delay_ms(50);
 		drawObjectToLcd(pressed_element.obj,pressed_element.element_data_pointer,0);
-		printf("cs , ts : %d %d \n\r", currentScreen, gConf.totalScreens);
-		if (currentScreen < gConf.totalScreens)
+
+		if (currentScreen < gConf.totalScreens - 1)
 		{
 			currentScreen++;
 		}else
 		{
 			currentScreen = 0;
 		}
-		//currentScreen = 1;
-		set_page(currentScreen);
+		printf("Current screen , Total screens : %d %d \n\r", currentScreen, gConf.totalScreens);
 		notYetDrawnFlag = 1;
 		sprintf(reply,"Type:%d ID:%d Value:%d \n\r",pressed_element.element_type, pressed_element.ID,currentScreen);
 #if DEBUG_TOUCH == 1
@@ -267,7 +263,8 @@ void act_pressed_element()
 #endif
 
 		int ret = send_usart_message(reply, &huart2, strlen(reply));
-	}
+	};
+	//touch_reset();
 }
 // Register element to the touch elements array.
 uint8_t touch_register_element(uint8_t page,uint8_t layer,struct object obj, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,uint16_t element_type, uint32_t element_pointer,uint16_t ID)
@@ -286,7 +283,7 @@ uint8_t touch_register_element(uint8_t page,uint8_t layer,struct object obj, uin
 			touch_elements_register[page][layer][i].ID = ID;
 			touch_elements_register[page][layer][i].isAlive = 1;
 #if DEBUG_TOUCH == 1
-			printf("\n\r [TCH] Element registered with index: %d\n\r",i);
+			printf("\n\r [TCH] Element registered with index: %d\n\r on page: %d on layer: %d",i, active_page, active_layer);
 			printf("\n\r [TCH] Element values: %d %d %d %d %d %d %d %d\n\r",x0,x1,y0,y1,element_pointer,element_type, ID);
 #endif
 			return 0;
@@ -371,10 +368,6 @@ static uint8_t validate_touch_coordinates(void)
 	y = Y_A* (int16_t)touch.x + Y_B *(int16_t)touch.y +Y_L;
 	touch.x = (uint16_t)x;
 	touch.y = (uint16_t)y;
-#endif
-#if DEBUG_TOUCH == 1
-	printf("TOUCH y %d\n\r", touch.y);
-	printf("TOUCH X %d\n\r", touch.x);
 #endif
 	if (touch.x >= 0 && touch.x <= LCD_PIXEL_WIDTH)
 	{

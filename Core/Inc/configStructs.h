@@ -47,8 +47,8 @@ typedef enum{
 	button,			//button which is reported when pressed
 	label,			//text label
 	picture,		//used for displaying bitmaps from memory
-	screenbutton,	//button which when pressed changes current page (TODO Danylo)
-	slider,			//slider that can change the value in percents from 0 to 100% (TODO Danylo)
+	screenbutton,	//button which when pressed changes current page
+	slider,			//slider that can change the value in percents from 0 to 100%
 	interactivelabel //label that has no text of its own, but its text can be set by external uart
 } objectType_t;
 

@@ -184,12 +184,13 @@ int main(void)
 		{
 			notYetDrawnFlag = 0;
 			readGeneralConfig(&gConf);
-		    Init_LCD();
-		    touch_reset();
-		    touch_init(hi2c1);
+			Init_LCD();
+			touch_reset();
+			touch_init(hi2c1);
+			set_page(currentScreen);
 			printf("Something changed. Redrawing display and updating bitmap list.\n\r");
+			printf("Current screen is: %d\n\r",currentScreen);
 			readBitmapList(&globalBitmapList);
-			//printAllScreens(gConf);
 			objectsRead = 0;
 			if(currentScreen < gConf.totalScreens)
 			{
