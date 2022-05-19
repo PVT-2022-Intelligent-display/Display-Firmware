@@ -37,6 +37,7 @@
 #include "configStructs.h"
 #include "objectVisualization.h"
 #include "bitmapCacheLib.h"
+#include "extProcComm.h"
 
 /* USER CODE END Includes */
 
@@ -176,6 +177,8 @@ int main(void)
 			 configResult = configFromUart(); //check if there's incoming data on config uart, if yes, attempt to read configuration
 		}
 
+
+
 		//redraw display
 		if(notYetDrawnFlag || configResult != 1)
 		{
@@ -197,10 +200,10 @@ int main(void)
 			{
 				drawObjectToLcd(objArr[i], pointerArr[i], 0);
 				touch_register_element(currentScreen,0,objArr[i],objArr[i].xstart,objArr[i].ystart,objArr[i].xend,objArr[i].yend,objArr[i].objectType,pointerArr[i], objArr[i].objectId);
-				if(objArr[i].objectType==interactivelabel){
+				/*if(objArr[i].objectType==interactivelabel){
 					char str1[] = "hello!";
 					drawInteractiveLabelToLcd(objArr[i], pointerArr[i], str1);
-				}
+				}*/
 			}
 			//touch_register_element(currentScreen,0,10,10,bitmap_header.xsize, bitmap_header.ysize,6,0);
 		}
@@ -221,6 +224,10 @@ int main(void)
 		//		}
 		//}
 
+
+		if(loopNumber % 3000000 == 0){
+			 handleIncomingProcessorMsg(screenHeader.objectCount , objArr, pointerArr);
+		}
 
 		touch_periodic_process();
 		static int flashDone = 0;

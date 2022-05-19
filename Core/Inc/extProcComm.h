@@ -16,6 +16,6 @@
  * Currently supports only 1 kind of message - displaying text on an interactive label object.
  *
  */
-int handleIncomingProcessorMsg(struct screen currentScreenHeader, struct object *objectArray, uint8_t **pointerArray);
+int handleIncomingProcessorMsg(int objectCount, struct object *objectArray, uint8_t **pointerArray);
 
 #endif /* INC_EXTPROCCOMM_H_ */

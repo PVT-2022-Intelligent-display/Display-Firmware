@@ -328,7 +328,11 @@ void drawStringToLcd5x7(int x, int y, int pixelScaling, uint16_t textColor, int 
 				continue; //because there might be a newline later in string
 			}
 			drawCharToLcd5x7(charX, charY, pixelScaling, textColor, useBackground, bgColor, c);
-			charX += 5*pixelScaling + hSpacing;
+			charX += 5*pixelScaling;
+			if(useBackground){
+				LCD_fillRect(charX, charY, hSpacing, pixelScaling*8 + vSpacing, bgColor);
+			}
+			charX += hSpacing;
 		}
 	}
 
