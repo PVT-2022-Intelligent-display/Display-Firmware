@@ -45,6 +45,7 @@ USART_TypeDef* DBG_UART=DBGUART;
 
 
 
+#ifdef DEBUG_UART_PRINT
 
 #ifdef __GNUC__
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
@@ -57,6 +58,8 @@ PUTCHAR_PROTOTYPE{
 	HAL_UART_Transmit(&huart1, (uint8_t*)&ch, 1, 0xffff);
 	return ch;
 }
+
+#endif //DEBUG_UART_PRINT
 
 void put_in_rx_buffer(char data, USART_TypeDef* USARTx)
 {

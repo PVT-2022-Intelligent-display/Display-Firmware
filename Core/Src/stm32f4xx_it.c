@@ -262,7 +262,7 @@ void USART2_IRQHandler(void)
   	IIR=USART2->SR;
     if(IIR & UART_FLAG_RXNE){
   		// check if the USART6 receive interrupt flag was set
-  		char t = USART2->DR; // the character from the USART1 data register is saved in t
+  		char t = USART2->DR; // the character from the USART2 data register is saved in t
   		put_in_rx_buffer(t,RS485_UART);
       }
   	if(IIR & UART_FLAG_TXE){

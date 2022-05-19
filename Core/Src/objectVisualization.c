@@ -173,10 +173,11 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 		int slider_value = drawSlider(o.xstart, o.ystart, bitmap_header, pixel_buffer,pixel_gotten, 1, state,BLACK); //TODO change the scaling
 		return slider_value;
 	}
-	else if (o.objectType == screenbutton)
+	else if (o.objectType == interactivelabel)
 	{
-		uint16_t dIndex = 0;
-
+		printf("[OV] Warning: drawObjectToLcd() does nothing for interactivelabel. Call drawInteractiveLabelToLcd() instead.\n\r");
+		//do nothing here. Interactivelabels are not visualized on their own, rather, they are redrawn whenever text is sent to them from external processor,
+		//using function drawInteractiveLabelToLcd() below
 	}
 	else{
 		printf("[OV] Error: drawObjectToLcd() not implemented for object type [%s]. \n\r", objName);
@@ -184,6 +185,33 @@ int drawObjectToLcd(struct object o, uint8_t *data, int state){
 	}
 	return 0;
 }
+
+/*
+ * Draws interactive label to lcd. This function is separated from drawObjectToLcd because, unlike other objects, the text that is drawn to interactivelabel is not
+ * stored in external memory. Interactive labels are meant for displaying incoming messages from external processor, so this function is only called when data comes
+ * from external processor.
+ * Data and object are passed same way as when calling drawObjectToLcd. Expects @string to be null-terminated.
+ */
+void drawInteractiveLabelToLcd(struct object o, uint8_t *data, char *string){
+	if(o.dataLen < 8){
+		printf("[OV] Error: Not enough data for drawing interactive label id %d. Got %d, need 8.\n\r", o.objectId , o.dataLen);
+		return;
+	}
+	int dIndex = 0;
+	uint8_t pixelScaling =	*(data + dIndex++);
+	uint8_t hSpace = 		*(data + dIndex++);
+	uint8_t vSpace = 		*(data + dIndex++);
+	uint8_t useBg = 		*(data + dIndex++);
+	uint16_t textColor = 	(*(data + dIndex) << 8) + *(data+dIndex+1);
+	dIndex += 2;
+	uint16_t bgColor = 		(*(data + dIndex) << 8) + *(data+dIndex+1);
+	dIndex += 2;
+	drawStringToLcd5x7(o.xstart, o.ystart, pixelScaling, textColor, useBg, bgColor, hSpace, vSpace, string);
+}
+
+
+
+
 /*
  * Draw a slider using bitmaps stored in memmory
  */

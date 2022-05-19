@@ -10,6 +10,8 @@
 
 #include <stm32f4xx_hal.h>
 
+#define DEBUG_UART_PRINT //comment out this line to disable printf redirecting to huart1
+
 #define MAX_STRLEN_RS485	 	255
 #define MAX_STRLEN_DBG		 	4100
 

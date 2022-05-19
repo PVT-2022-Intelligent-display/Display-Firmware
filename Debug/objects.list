@@ -4,6 +4,7 @@
 "./Core/Src/configLib.o"
 "./Core/Src/extFlash.o"
 "./Core/Src/extFlashDemo.o"
+"./Core/Src/extProcComm.o"
 "./Core/Src/main.o"
 "./Core/Src/objectVisualization.o"
 "./Core/Src/spiRoutines.o"

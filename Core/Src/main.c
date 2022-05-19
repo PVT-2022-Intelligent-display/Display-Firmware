@@ -71,7 +71,8 @@ SRAM_HandleTypeDef hsram1;
 //global list of bitmaps, used by bitmap cache library.
 struct bitmapList globalBitmapList;
 int notYetDrawnFlag = 1;
-int currentScreen = 1;
+int currentScreen = 0;
+struct generalConfig gConf;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -158,7 +159,6 @@ int main(void)
 	uint8_t dataArr[maxData];
 	uint8_t *pointerArr[maxObjects];
 	struct bitmap btimap_header;
-	struct generalConfig gConf;
 	int objectsRead = 0;
 	int loopNumber = 0;
 
@@ -188,7 +188,6 @@ int main(void)
 			readBitmapList(&globalBitmapList);
 			//printAllScreens(gConf);
 			objectsRead = 0;
-			currentScreen = 0;
 			if(currentScreen < gConf.totalScreens)
 			{
 				objectsRead = openScreen(gConf.screenSectors[currentScreen], &screenHeader, objArr, dataArr, pointerArr, maxData, maxObjects);
@@ -196,9 +195,12 @@ int main(void)
 			int i;
 			for(i = 0; i<objectsRead; i++)
 			{
-
 				drawObjectToLcd(objArr[i], pointerArr[i], 0);
 				touch_register_element(currentScreen,0,objArr[i],objArr[i].xstart,objArr[i].ystart,objArr[i].xend,objArr[i].yend,objArr[i].objectType,pointerArr[i], objArr[i].objectId);
+				if(objArr[i].objectType==interactivelabel){
+					char str1[] = "hello!";
+					drawInteractiveLabelToLcd(objArr[i], pointerArr[i], str1);
+				}
 			}
 			//touch_register_element(currentScreen,0,10,10,bitmap_header.xsize, bitmap_header.ysize,6,0);
 		}

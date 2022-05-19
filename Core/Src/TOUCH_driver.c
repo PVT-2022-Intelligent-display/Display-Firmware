@@ -53,7 +53,7 @@ struct element_t pressed_element;
 uint8_t active_page;
 uint8_t active_layer;
 uint8_t slider_last_percents;
-struct generalConfig gConf;
+extern struct generalConfig gConf; //PB: Added extern because otherwise it does not work, you're not looking at the gConf from main but rather declaring a new one here.
 
 /*----------------------------------------------Private function define----------------------------------------------*/
 struct element_t touch_elements_register[MAX_NUM_PAGES][MAX_NUM_LAYERS][MAX_NUM_ELEMENTS];
@@ -215,6 +215,7 @@ void act_pressed_element()
 		drawObjectToLcd(pressed_element.obj,pressed_element.element_data_pointer,1);
 		delay_ms(50);
 		drawObjectToLcd(pressed_element.obj,pressed_element.element_data_pointer,0);
+		printf("cs , ts : %d %d \n\r", currentScreen, gConf.totalScreens);
 		if (currentScreen < gConf.totalScreens)
 		{
 			currentScreen++;
@@ -222,6 +223,7 @@ void act_pressed_element()
 		{
 			currentScreen = 0;
 		}
+		//currentScreen = 1;
 		set_page(currentScreen);
 		notYetDrawnFlag = 1;
 		sprintf(reply,"Type:%d ID:%d Value:%d \n\r",pressed_element.element_type, pressed_element.ID,currentScreen);
